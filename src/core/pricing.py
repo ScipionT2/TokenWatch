@@ -37,6 +37,23 @@ MODEL_PRICING: dict[str, tuple[float, float, ModelTier]] = {
     # Image
     "gpt-5-image": (10.00, 10.00, ModelTier.IMAGE),
     "gpt-5-image-mini": (2.50, 2.00, ModelTier.IMAGE),
+
+    # --- Anthropic (Claude) ---
+    "claude-4": (3.00, 15.00, ModelTier.FLAGSHIP),
+    "claude-4-opus": (15.00, 75.00, ModelTier.FLAGSHIP),
+    "claude-4-sonnet": (3.00, 15.00, ModelTier.FLAGSHIP),
+    "claude-4-haiku": (0.80, 4.00, ModelTier.STANDARD),
+    "claude-4.6": (4.00, 20.00, ModelTier.FLAGSHIP),
+    "claude-4.6-opus": (20.00, 100.00, ModelTier.FLAGSHIP),
+    "claude-4.6-sonnet": (4.00, 20.00, ModelTier.FLAGSHIP),
+    "claude-3.5-sonnet": (3.00, 15.00, ModelTier.FLAGSHIP),
+    "claude-3.5-haiku": (0.80, 4.00, ModelTier.STANDARD),
+
+    # --- Google (Gemini) ---
+    "gemini-2.5-pro": (1.25, 10.00, ModelTier.FLAGSHIP),
+    "gemini-2.5-flash": (0.15, 0.60, ModelTier.ECONOMY),
+    "gemini-2.0-flash": (0.10, 0.40, ModelTier.ECONOMY),
+    "gemini-2.0-pro": (1.00, 5.00, ModelTier.STANDARD),
 }
 
 # Fallback for unknown models — assume standard pricing

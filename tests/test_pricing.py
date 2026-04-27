@@ -99,6 +99,57 @@ class TestSuggestCheaperModel:
         assert "codex" in model.lower() or "mini" in model.lower()
 
 
+class TestThirdPartyModels:
+    """Tests for Claude and Gemini model pricing."""
+
+    def test_claude_4_pricing(self):
+        inp, out, tier = get_pricing("claude-4")
+        assert inp == 3.00
+        assert out == 15.00
+        assert tier == ModelTier.FLAGSHIP
+
+    def test_claude_4_6_pricing(self):
+        inp, out, tier = get_pricing("claude-4.6")
+        assert inp == 4.00
+        assert out == 20.00
+        assert tier == ModelTier.FLAGSHIP
+
+    def test_claude_4_6_opus_pricing(self):
+        inp, out, tier = get_pricing("claude-4.6-opus")
+        assert inp == 20.00
+        assert out == 100.00
+        assert tier == ModelTier.FLAGSHIP
+
+    def test_claude_4_haiku_is_standard(self):
+        _, _, tier = get_pricing("claude-4-haiku")
+        assert tier == ModelTier.STANDARD
+
+    def test_gemini_2_5_pro_pricing(self):
+        inp, out, tier = get_pricing("gemini-2.5-pro")
+        assert inp == 1.25
+        assert out == 10.00
+        assert tier == ModelTier.FLAGSHIP
+
+    def test_gemini_2_5_flash_pricing(self):
+        inp, out, tier = get_pricing("gemini-2.5-flash")
+        assert inp == 0.15
+        assert out == 0.60
+        assert tier == ModelTier.ECONOMY
+
+    def test_claude_cost_calculation(self):
+        # claude-4.6: $4.00/1M in, $20.00/1M out
+        # 10k input + 5k output = $0.04 + $0.10 = $0.14
+        cost = calculate_cost("claude-4.6", 10000, 5000)
+        assert abs(cost - 0.14) < 0.0001
+
+    def test_gemini_flash_is_cheap(self):
+        cost = calculate_cost("gemini-2.5-flash", 10000, 5000)
+        assert cost < 0.01
+
+    def test_model_count_includes_third_party(self):
+        assert len(MODEL_PRICING) >= 35  # 25 OpenAI + 9 Claude + 4 Gemini
+
+
 class TestEstimateBatchCost:
     def test_batch_calculation(self):
         result = estimate_batch_cost("gpt-5", 500, 200, 100)
