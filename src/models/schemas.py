@@ -111,6 +111,15 @@ class HealthResponse(BaseModel):
     requests_logged_today: int = 0
 
 
+# --- Webhook Configuration ---
+
+class WebhookConfig(BaseModel):
+    """Configuration for alert webhook delivery."""
+    url: str = Field(..., description="Webhook URL to POST alerts to")
+    threshold: Optional[float] = Field(None, description="Custom spend threshold to trigger alerts")
+    enabled: bool = True
+
+
 # --- Proxy ---
 
 class ProxyRequest(BaseModel):

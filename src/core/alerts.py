@@ -22,6 +22,9 @@ _alert_history: list[CostAlert] = []
 _daily_spend: float = 0.0
 _last_reset_date: Optional[str] = None
 
+# Runtime webhook configuration (set via API)
+_webhook_config: Optional[dict] = None
+
 
 def check_and_alert(
     request_cost: float,
@@ -76,6 +79,19 @@ def check_and_alert(
             triggered_at=datetime.now(),
         )
 
+    # Check custom webhook threshold
+    if not alert and _webhook_config and _webhook_config.get("threshold"):
+        custom_threshold = _webhook_config["threshold"]
+        if _daily_spend > custom_threshold:
+            alert = CostAlert(
+                level=AlertLevel.WARNING,
+                message=f"\u26a0\ufe0f Custom threshold exceeded: ${_daily_spend:.2f} / ${custom_threshold:.2f}. "
+                        f"Model: {model}.",
+                current_spend=_daily_spend,
+                threshold=custom_threshold,
+                triggered_at=datetime.now(),
+            )
+
     if alert:
         _alert_history.append(alert)
         logger.log(
@@ -113,8 +129,51 @@ async def _fire_webhook_async(alert: CostAlert) -> None:
 
 def _fire_webhook(alert: CostAlert) -> None:
     """Sync wrapper — webhooks are best-effort, don't block the request."""
-    # In production, use a background task queue
-    pass
+    webhook_url = _get_webhook_url()
+    if not webhook_url:
+        return
+    try:
+        with httpx.Client() as client:
+            client.post(
+                webhook_url,
+                json={
+                    "level": alert.level.value,
+                    "message": alert.message,
+                    "spend": alert.current_spend,
+                    "threshold": alert.threshold,
+                    "timestamp": alert.triggered_at.isoformat(),
+                },
+                timeout=5.0,
+            )
+    except Exception as e:
+        logger.error(f"Failed to fire alert webhook: {e}")
+
+
+def _get_webhook_url() -> Optional[str]:
+    """Get the active webhook URL from runtime config or env settings."""
+    if _webhook_config and _webhook_config.get("enabled"):
+        return _webhook_config.get("url")
+    return settings.alert_webhook_url
+
+
+def configure_webhook(url: str, threshold: Optional[float] = None, enabled: bool = True) -> dict:
+    """Configure webhook delivery at runtime.
+    
+    Returns the current webhook configuration.
+    """
+    global _webhook_config
+    _webhook_config = {
+        "url": url,
+        "threshold": threshold,
+        "enabled": enabled,
+    }
+    logger.info(f"Webhook configured: {url} (threshold: {threshold}, enabled: {enabled})")
+    return _webhook_config
+
+
+def get_webhook_config() -> Optional[dict]:
+    """Return current webhook configuration."""
+    return _webhook_config
 
 
 def get_alert_history(limit: int = 50) -> list[CostAlert]:

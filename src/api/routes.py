@@ -14,12 +14,13 @@ from src.models.schemas import (
     PromptAnalysis,
     UsageSummary,
     CostForecast,
+    WebhookConfig,
 )
 from src.core.pricing import calculate_cost, get_tier, suggest_cheaper_model, estimate_batch_cost
 from src.core.token_counter import count_message_tokens, hash_prompt
 from src.core.prompt_optimizer import analyze_prompt, compress_messages
 from src.core.cache import response_cache
-from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend
+from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
 from src.services.analytics import log_request, get_usage_summary, get_cost_forecast
 from src.middleware.rate_limiter import rate_limiter
 
@@ -127,6 +128,30 @@ async def cost_forecast():
 async def alerts(limit: int = 50):
     """Recent cost alerts."""
     return {"alerts": [a.model_dump() for a in get_alert_history(limit)]}
+
+
+@router.post("/alerts/configure")
+async def configure_alerts_webhook(config: WebhookConfig):
+    """Configure webhook delivery for alerts.
+    
+    Set a URL to receive POST notifications when cost alerts fire.
+    Optionally set a custom spend threshold.
+    """
+    result = configure_webhook(
+        url=config.url,
+        threshold=config.threshold,
+        enabled=config.enabled,
+    )
+    return {"status": "configured", "webhook": result}
+
+
+@router.get("/alerts/webhook")
+async def get_alerts_webhook():
+    """Get current webhook configuration."""
+    config = get_webhook_config()
+    if not config:
+        return {"configured": False, "webhook": None}
+    return {"configured": True, "webhook": config}
 
 
 # --- Cache Management ---
