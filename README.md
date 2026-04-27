@@ -6,7 +6,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-77%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-129%20passed-brightgreen.svg)]()
+[![CI](https://github.com/escipionpedroza147-commits/API-Sentinel/actions/workflows/tests.yml/badge.svg)](https://github.com/escipionpedroza147-commits/API-Sentinel/actions/workflows/tests.yml)
 
 ## The Problem
 
@@ -24,8 +25,11 @@ API Sentinel sits between your application and OpenAI. It analyzes every request
 - **💾 Response Caching** — Identical prompts return cached responses at zero token cost (LRU + TTL)
 - **⚡ Token-Aware Rate Limiting** — Track both RPM and TPM to prevent 429 errors before they happen
 - **🚨 Budget Alerts** — Three-tier alerting (info/warning/critical) with webhook support for Slack/Discord
-- **📊 Usage Analytics** — Dashboards, forecasting, and cost-per-model breakdowns
+- **📊 Live Dashboard** — Real-time spend, cache stats, top models, and recent alerts at `/dashboard`
+- **📜 Request History** — Log every API call and query history with model/date filters
+- **📤 Data Export** — Export request history as CSV or JSON for analysis in external tools
 - **💡 Model Recommendations** — Automatically suggest cheaper models that can handle the same task
+- **🐳 Docker Ready** — One-command deployment with Docker Compose
 
 ## Quick Start
 
@@ -39,7 +43,18 @@ python main.py
 
 Server at `http://localhost:8000` — Interactive docs at `/docs`.
 
-## API Endpoints (14 Total)
+### Docker
+
+```bash
+# Build and run
+docker compose up -d
+
+# Or build manually
+docker build -t api-sentinel .
+docker run -p 8000:8000 --env-file .env api-sentinel
+```
+
+## API Endpoints (20 Total)
 
 ### Cost Intelligence
 | Method | Endpoint | Description |
@@ -47,7 +62,7 @@ Server at `http://localhost:8000` — Interactive docs at `/docs`.
 | `POST` | `/api/v1/estimate/cost` | Pre-request cost estimate with cheaper model suggestions |
 | `POST` | `/api/v1/estimate/batch` | Batch cost estimation for planning |
 | `GET` | `/api/v1/pricing/{model}` | Look up any model's pricing |
-| `GET` | `/api/v1/pricing` | Full pricing table (30+ models) |
+| `GET` | `/api/v1/pricing` | Full pricing table (37+ models) |
 
 ### Prompt Optimization
 | Method | Endpoint | Description |
@@ -55,12 +70,26 @@ Server at `http://localhost:8000` — Interactive docs at `/docs`.
 | `POST` | `/api/v1/analyze/prompt` | Detect waste, redundancy, and suggest optimizations |
 | `POST` | `/api/v1/optimize/prompt` | Auto-compress prompts and return savings |
 
+### Request Logging & History
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/log` | Log an API request (model, tokens, cost, timestamp) |
+| `GET` | `/api/v1/history` | Query request history with model/date filters |
+
+### Export
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/export/csv` | Export request history as CSV download |
+| `GET` | `/api/v1/export/json` | Export request history as JSON |
+
 ### Analytics & Alerts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/analytics/usage` | Usage breakdown by time window and model |
 | `GET` | `/api/v1/analytics/forecast` | Projected monthly/yearly spend |
 | `GET` | `/api/v1/analytics/alerts` | Recent cost alerts |
+| `POST` | `/api/v1/alerts/configure` | Configure webhook URL and threshold for alerts |
+| `GET` | `/api/v1/alerts/webhook` | Get current webhook configuration |
 
 ### Infrastructure
 | Method | Endpoint | Description |
@@ -70,6 +99,11 @@ Server at `http://localhost:8000` — Interactive docs at `/docs`.
 | `POST` | `/api/v1/cache/clear` | Flush response cache |
 | `GET` | `/api/v1/rate-limit/status` | Current RPM/TPM utilization |
 | `POST` | `/api/v1/rate-limit/check` | Pre-flight rate limit check |
+
+### Dashboard
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/dashboard` | Live HTML dashboard with spend, cache, and alerts |
 
 ## Example: Analyze Before You Spend
 
@@ -102,66 +136,77 @@ Response:
 }
 ```
 
-## Example: Optimize a Bloated Prompt
+## Example: Log & Export Requests
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/analyze/prompt \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-5",
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant. Please be very helpful and thorough..."},
-      {"role": "system", "content": "Also remember to be concise..."},
-      {"role": "user", "content": "Hello\n\n\n\n\nworld"}
-    ]
-  }'
-```
+# Log an API request
+curl -X POST "http://localhost:8000/api/v1/log?model=gpt-5&prompt_tokens=1000&completion_tokens=500&cost_usd=0.00625"
 
-Detects: multiple system messages, excessive whitespace, potential token waste.
+# Query history filtered by model
+curl "http://localhost:8000/api/v1/history?model=gpt-5&limit=10"
+
+# Export as CSV
+curl -o export.csv "http://localhost:8000/api/v1/export/csv"
+
+# Export as JSON
+curl "http://localhost:8000/api/v1/export/json"
+```
 
 ## Architecture
 
 ```
 openai-api-sentinel/
-├── main.py                          # FastAPI server with lifespan
+├── main.py                          # FastAPI server with lifespan + dashboard
 ├── config/
 │   └── settings.py                  # Env-based configuration
 ├── src/
 │   ├── api/
-│   │   └── routes.py                # 14 API endpoints
+│   │   └── routes.py                # 20 API endpoints
 │   ├── core/
-│   │   ├── pricing.py               # 30+ model pricing engine
+│   │   ├── pricing.py               # 37+ model pricing engine (OpenAI, Claude, Gemini)
 │   │   ├── token_counter.py         # tiktoken-backed token counting
 │   │   ├── prompt_optimizer.py      # Waste detection & compression
 │   │   ├── cache.py                 # LRU response cache with TTL
-│   │   └── alerts.py               # Three-tier budget alerting
+│   │   └── alerts.py                # Three-tier budget alerting + webhooks
 │   ├── middleware/
 │   │   └── rate_limiter.py          # Token-aware RPM/TPM limiter
 │   ├── models/
 │   │   └── schemas.py               # Pydantic v2 schemas
 │   └── services/
-│       └── analytics.py             # Usage aggregation & forecasting
-├── tests/                           # 77 tests across 7 test files
-│   ├── test_pricing.py              # 16 tests
+│       ├── analytics.py             # Usage aggregation & forecasting
+│       └── request_logger.py        # In-memory request log with filtering
+├── templates/
+│   └── dashboard.html               # Live HTML dashboard
+├── tests/                           # 129 tests across 11 test files
+│   ├── test_pricing.py              # 30 tests (incl. Claude/Gemini)
 │   ├── test_token_counter.py        # 10 tests
 │   ├── test_cache.py                # 9 tests
 │   ├── test_alerts.py               # 7 tests
 │   ├── test_prompt_optimizer.py     # 7 tests
 │   ├── test_rate_limiter.py         # 6 tests
-│   └── test_api.py                  # 22 tests
+│   ├── test_api.py                  # 22 tests
+│   ├── test_dashboard.py            # 6 tests
+│   ├── test_webhooks.py             # 9 tests
+│   ├── test_request_logger.py       # 16 tests
+│   └── test_export.py              # 13 tests
+├── .github/
+│   └── workflows/
+│       └── tests.yml                # CI: automated testing on push/PR
+├── Dockerfile                       # Python 3.11-slim container
+├── docker-compose.yml               # One-command deployment
 ├── requirements.txt
 └── LICENSE
 ```
 
 ## Pricing Engine
 
-Covers 30+ OpenAI models with exact per-token pricing:
+Covers 37+ models across OpenAI, Anthropic (Claude), and Google (Gemini):
 
 | Tier | Models | Input/1M | Output/1M |
 |------|--------|----------|-----------|
-| Flagship | gpt-5, gpt-5.5, o3-pro | $1.25-$30 | $8-$180 |
-| Standard | gpt-5-mini, o4-mini | $0.25-$1.10 | $2-$4.40 |
-| Economy | gpt-5-nano, gpt-4o-mini | $0.05-$0.20 | $0.40-$1.25 |
+| Flagship | gpt-5, gpt-5.5, o3-pro, claude-4, claude-4.6, gemini-2.5-pro | $1.25-$30 | $8-$180 |
+| Standard | gpt-5-mini, o4-mini, claude-4-haiku, gemini-2.0-pro | $0.25-$1.10 | $2-$5 |
+| Economy | gpt-5-nano, gpt-4o-mini, gemini-2.5-flash | $0.05-$0.20 | $0.40-$1.25 |
 | Embedding | text-embedding-3-* | $0.02-$0.13 | — |
 
 ## Running Tests
@@ -170,7 +215,7 @@ Covers 30+ OpenAI models with exact per-token pricing:
 python -m pytest tests/ -v
 ```
 
-All 77 tests run offline — no API keys required.
+All 129 tests run offline — no API keys required.
 
 ## Use Cases
 
@@ -179,6 +224,7 @@ All 77 tests run offline — no API keys required.
 - **API Gateway** — Centralized monitoring for multi-team OpenAI usage
 - **CI/CD Integration** — Pre-commit prompt analysis to catch cost regressions
 - **FinOps for AI** — The missing observability layer for LLM spend
+- **Audit & Compliance** — Export request history for cost reporting
 
 ## License
 
