@@ -1,11 +1,15 @@
 """API routes — the control plane for monitoring and optimizing OpenAI spend."""
 
+import csv
+import io
 import logging
 import time
 import uuid
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from src.models.schemas import (
     HealthResponse,
@@ -22,6 +26,7 @@ from src.core.prompt_optimizer import analyze_prompt, compress_messages
 from src.core.cache import response_cache
 from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
 from src.services.analytics import log_request, get_usage_summary, get_cost_forecast
+from src.services.request_logger import request_logger, RequestEntry
 from src.middleware.rate_limiter import rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -181,6 +186,129 @@ async def rate_limit_status():
 async def rate_limit_check(estimated_tokens: int = 1000):
     """Check if a request would be rate-limited."""
     return rate_limiter.check(estimated_tokens)
+
+
+# --- Request Logging & History ---
+
+@router.post("/log")
+async def log_api_request(
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    cost_usd: float,
+    timestamp: Optional[str] = None,
+    request_id: Optional[str] = None,
+):
+    """Log an API request for tracking and analysis.
+    
+    Record every API call with model, token counts, and cost.
+    Use this to build a complete picture of your OpenAI spend.
+    """
+    ts = datetime.fromisoformat(timestamp) if timestamp else datetime.now()
+    entry = RequestEntry(
+        model=model,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=prompt_tokens + completion_tokens,
+        cost_usd=cost_usd,
+        timestamp=ts,
+        request_id=request_id or str(uuid.uuid4())[:8],
+    )
+    request_logger.log(entry)
+    return {
+        "status": "logged",
+        "request_id": entry.request_id,
+        "total_logged": request_logger.count(),
+    }
+
+
+@router.get("/history")
+async def request_history(
+    limit: int = Query(50, ge=1, le=1000),
+    model: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Retrieve recent API request history with optional filtering.
+    
+    Filter by model name, date range, or both. Returns newest first.
+    """
+    sd = datetime.fromisoformat(start_date) if start_date else None
+    ed = datetime.fromisoformat(end_date) if end_date else None
+
+    entries = request_logger.get_history(
+        limit=limit,
+        model=model,
+        start_date=sd,
+        end_date=ed,
+    )
+    return {
+        "entries": entries,
+        "count": len(entries),
+        "total_logged": request_logger.count(),
+        "total_cost_usd": request_logger.total_cost(),
+    }
+
+
+# --- Export ---
+
+@router.get("/export/json")
+async def export_json(
+    model: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Export request history as JSON."""
+    sd = datetime.fromisoformat(start_date) if start_date else None
+    ed = datetime.fromisoformat(end_date) if end_date else None
+    entries = request_logger.get_history(
+        limit=10000,
+        model=model,
+        start_date=sd,
+        end_date=ed,
+    )
+    return {"entries": entries, "count": len(entries)}
+
+
+@router.get("/export/csv")
+async def export_csv(
+    model: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Export request history as CSV with proper Content-Disposition header."""
+    sd = datetime.fromisoformat(start_date) if start_date else None
+    ed = datetime.fromisoformat(end_date) if end_date else None
+    entries = request_logger.get_history(
+        limit=10000,
+        model=model,
+        start_date=sd,
+        end_date=ed,
+    )
+
+    def generate_csv():
+        output = io.StringIO()
+        fieldnames = [
+            "model", "prompt_tokens", "completion_tokens",
+            "total_tokens", "cost_usd", "timestamp", "request_id",
+        ]
+        writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        for entry in entries:
+            writer.writerow(entry)
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    return StreamingResponse(
+        generate_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=api_sentinel_export.csv"},
+    )
 
 
 # --- Model Pricing ---
