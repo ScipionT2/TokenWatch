@@ -11,11 +11,17 @@ from __future__ import annotations
 
 import argparse
 import shutil
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import uvicorn
 
 from config import settings
+from src.core.budget import configure_budget
+from src.core.pricing import calculate_cost
+from src.core.token_counter import hash_prompt
+from src.services.projects import project_store
+from src.services.request_logger import RequestEntry, request_logger
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +72,61 @@ def serve(host: str | None = None, port: int | None = None, reload: bool = False
     )
 
 
+def seed_demo_data(reset: bool = False) -> str:
+    """Seed realistic local demo data for dashboard screenshots and demos."""
+    if reset:
+        request_logger.clear()
+        project_store.clear()
+
+    configure_budget("warn", daily_budget=2.50, per_request_max=0.10)
+    project = project_store.create_project("Demo SaaS App", daily_budget=2.50)
+    api_key = project_store.create_api_key(project.id, "demo-key")
+
+    now = datetime.now()
+    samples = [
+        ("gpt-5", "/v1/chat/completions", 3200, 950, "Summarize customer onboarding transcript"),
+        ("gpt-5-mini", "/v1/chat/completions", 1400, 420, "Draft support response"),
+        ("gpt-5-nano", "/v1/chat/completions", 260, 40, "Classify ticket urgency"),
+        ("gpt-5", "/v1/responses", 5200, 1400, "Analyze sales pipeline risks"),
+        ("gpt-5-mini", "/v1/chat/completions", 900, 300, "Generate changelog summary"),
+        ("gpt-5-nano", "/v1/chat/completions", 260, 40, "Classify ticket urgency"),
+        ("gpt-5-mini", "/v1/chat/completions", 1100, 280, "Extract invoice fields"),
+        ("gpt-5", "/v1/chat/completions", 2500, 800, "Debug billing reconciliation issue"),
+        ("gpt-5-nano", "/v1/embeddings", 700, 0, "Embed help center article"),
+        ("gpt-5-mini", "/v1/chat/completions", 1600, 500, "Summarize product feedback"),
+    ]
+
+    for i, (model, endpoint, prompt_tokens, completion_tokens, prompt) in enumerate(samples):
+        cost = calculate_cost(model, prompt_tokens, completion_tokens)
+        total_tokens = prompt_tokens + completion_tokens
+        cache_hit = i == 5
+        request_logger.log(RequestEntry(
+            model=model,
+            endpoint=endpoint,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost_usd=0.0 if cache_hit else cost,
+            timestamp=now - timedelta(minutes=(len(samples) - i) * 18),
+            request_id=f"demo-{i + 1}",
+            latency_ms=180 + (i * 37),
+            status_code=200,
+            cache_hit=cache_hit,
+            tokens_saved=total_tokens if cache_hit else 0,
+            cost_saved_usd=cost if cache_hit else 0.0,
+            prompt_hash=hash_prompt([{"role": "user", "content": prompt}]),
+            metadata={"project_id": project.id, "project_name": project.name},
+        ))
+
+    return "\n".join([
+        "TokenWatch demo data seeded.",
+        f"  Project: {project.name} ({project.id})",
+        f"  Demo API key: {api_key['api_key']}",
+        f"  Requests added: {len(samples)}",
+        f"  Dashboard: http://localhost:{settings.port}/dashboard",
+    ])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tokenwatch", description="TokenWatch local AI API spend control")
     sub = parser.add_subparsers(dest="command")
@@ -76,6 +137,9 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--host", default=None, help="Host to bind, default from .env/HOST")
     serve_parser.add_argument("--port", type=int, default=None, help="Port to bind, default from .env/PORT")
     serve_parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload")
+
+    demo_parser = sub.add_parser("demo", help="Seed realistic local demo data for the dashboard")
+    demo_parser.add_argument("--reset", action="store_true", help="Clear request/project data before seeding")
 
     sub.add_parser("status", help="Print local TokenWatch config/status")
     return parser
@@ -90,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "serve":
         serve(host=args.host, port=args.port, reload=args.reload)
+        return 0
+    if args.command == "demo":
+        print(seed_demo_data(reset=args.reset))
         return 0
     if args.command == "status":
         print(status_text())

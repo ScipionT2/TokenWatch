@@ -51,10 +51,29 @@ Server at `http://localhost:8000` — Dashboard at `/dashboard` — Interactive 
 Useful CLI commands:
 
 ```bash
-tokenwatch init      # create .env from .env.example
-tokenwatch status    # print local config, dashboard URL, proxy readiness
-tokenwatch serve     # run the FastAPI server
+tokenwatch init          # create .env from .env.example
+tokenwatch demo --reset  # seed realistic dashboard/demo data
+tokenwatch status        # print local config, dashboard URL, proxy readiness
+tokenwatch serve         # run the FastAPI server
 ```
+
+### Demo Mode
+
+Want a populated dashboard without sending real OpenAI traffic?
+
+```bash
+tokenwatch init
+tokenwatch demo --reset
+tokenwatch serve
+```
+
+Then open:
+
+```txt
+http://localhost:8000/dashboard
+```
+
+Demo mode creates a sample project, a demo `X-TokenWatch-Key`, realistic request history, cache-hit data, model cost breakdowns, duplicate prompt signals, and dashboard optimization opportunities.
 
 ### Docker
 

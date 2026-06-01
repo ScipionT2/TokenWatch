@@ -15,6 +15,9 @@ class TestCLI:
         assert args.host == "127.0.0.1"
         assert args.port == 9000
         assert args.reload is True
+        demo_args = parser.parse_args(["demo", "--reset"])
+        assert demo_args.command == "demo"
+        assert demo_args.reset is True
 
     def test_init_env_creates_file(self, tmp_path):
         env_file = tmp_path / ".env"
@@ -36,6 +39,15 @@ class TestCLI:
         assert "TokenWatch status" in text
         assert "/dashboard" in text
         assert "OpenAI proxy forwarding" in text
+
+    def test_seed_demo_data_creates_requests_and_project(self):
+        msg = cli.seed_demo_data(reset=True)
+        assert "demo data seeded" in msg.lower()
+        assert "Demo API key" in msg
+        from src.services.request_logger import request_logger
+        from src.services.projects import project_store
+        assert request_logger.count() == 10
+        assert len(project_store.list_projects()) == 1
 
     def test_main_status_returns_zero(self, capsys):
         code = cli.main(["status"])
