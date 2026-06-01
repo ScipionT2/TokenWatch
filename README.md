@@ -6,8 +6,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-129%20passed-brightgreen.svg)]()
-[![CI](https://github.com/escipionpedroza147-commits/API-Sentinel/actions/workflows/tests.yml/badge.svg)](https://github.com/escipionpedroza147-commits/API-Sentinel/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/badge/tests-158%20passed-brightgreen.svg)]()
+[![CI](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml/badge.svg)](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml)
 
 ## The Problem
 
@@ -37,8 +37,8 @@ TokenWatch sits between your application and AI providers. It analyzes every req
 ## Quick Start
 
 ```bash
-git clone https://github.com/escipionpedroza147-commits/API-Sentinel.git
-cd API-Sentinel  # TokenWatch repo; folder may still use the legacy repo name
+git clone https://github.com/ScipionT2/TokenWatch.git
+cd TokenWatch
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
