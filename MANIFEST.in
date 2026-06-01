@@ -1,0 +1,4 @@
+include templates/*.html
+include .env.example
+include README.md
+include LICENSE

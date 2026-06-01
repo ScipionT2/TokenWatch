@@ -14,12 +14,13 @@ class Settings(BaseSettings):
     log_level: str = "info"
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./sentinel.db"
+    database_url: str = "sqlite+aiosqlite:///./tokenwatch.db"
 
-    # Cost alerts
+    # Cost alerts / budget controls
     alert_daily_budget: float = 50.00
     alert_per_request_max: float = 5.00
     alert_webhook_url: Optional[str] = None
+    budget_mode: str = "observe"  # observe | warn | block | downgrade
 
     # Token optimization
     max_prompt_tokens: int = 8000

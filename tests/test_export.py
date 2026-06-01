@@ -92,7 +92,7 @@ class TestExportCSV:
     def test_export_csv_content_disposition(self):
         r = client.get("/api/v1/export/csv")
         assert "attachment" in r.headers["content-disposition"]
-        assert "api_sentinel_export.csv" in r.headers["content-disposition"]
+        assert "tokenwatch_export.csv" in r.headers["content-disposition"]
 
     def test_export_csv_has_header(self):
         r = client.get("/api/v1/export/csv")

@@ -1,4 +1,4 @@
-# 🛡️ API Sentinel
+# 👁️ TokenWatch
 
 > Monitor, analyze, and optimize your OpenAI API spend in real-time.  
 > Stop burning tokens. Start understanding where every dollar goes.
@@ -15,33 +15,46 @@ Enterprise teams spend thousands on OpenAI APIs with zero visibility into where 
 
 ## The Solution
 
-API Sentinel sits between your application and OpenAI. It analyzes every request for cost, efficiency, and waste — then gives you the data to fix it.
+TokenWatch sits between your application and AI providers. It analyzes every request for cost, efficiency, and waste — then gives you the data to fix it.
 
 ### What It Does
 
 - **💰 Real-Time Cost Tracking** — Know exactly what every request costs, broken down by model, tier, and endpoint
 - **🔍 Prompt Analysis** — Detect redundancy, waste, and optimization opportunities before spending tokens
 - **🗜️ Auto-Compression** — Remove whitespace bloat, merge system messages, eliminate duplicate content
-- **💾 Response Caching** — Identical prompts return cached responses at zero token cost (LRU + TTL)
+- **💾 Persistent Response Caching** — Identical prompts return cached responses at zero token cost (SQLite-backed LRU + TTL)
 - **⚡ Token-Aware Rate Limiting** — Track both RPM and TPM to prevent 429 errors before they happen
 - **🚨 Budget Alerts** — Three-tier alerting (info/warning/critical) with webhook support for Slack/Discord
-- **📊 Live Dashboard** — Real-time spend, cache stats, top models, and recent alerts at `/dashboard`
-- **📜 Request History** — Log every API call and query history with model/date filters
+- **🧯 Hard Budget Controls** — Observe, warn, block, or auto-downgrade requests before overspend happens
+- **🔌 OpenAI-Compatible Proxy** — Use `/v1/chat/completions`, `/v1/responses`, or `/v1/embeddings` with a base URL swap
+- **📊 SaaS-Style Dashboard** — Spend overview, budget status, model breakdown, recommendations, opportunities, recent requests, and alerts at `/dashboard`
+- **📜 Persistent Request History** — Log every API call to SQLite and query history with model/date filters
+- **🔑 Projects & API Keys** — Group usage by app/client with `X-TokenWatch-Key` project keys
 - **📤 Data Export** — Export request history as CSV or JSON for analysis in external tools
-- **💡 Model Recommendations** — Automatically suggest cheaper models that can handle the same task
+- **💡 Smart Model Recommendations** — Task-aware model swaps with risk, savings, monthly/yearly projections, and reasoning
 - **🐳 Docker Ready** — One-command deployment with Docker Compose
 
 ## Quick Start
 
 ```bash
 git clone https://github.com/escipionpedroza147-commits/API-Sentinel.git
-cd API-Sentinel
-pip install -r requirements.txt
-cp .env.example .env
-python main.py
+cd API-Sentinel  # TokenWatch repo; folder may still use the legacy repo name
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+tokenwatch init
+tokenwatch serve
 ```
 
-Server at `http://localhost:8000` — Interactive docs at `/docs`.
+Server at `http://localhost:8000` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
+
+Useful CLI commands:
+
+```bash
+tokenwatch init      # create .env from .env.example
+tokenwatch status    # print local config, dashboard URL, proxy readiness
+tokenwatch serve     # run the FastAPI server
+```
 
 ### Docker
 
@@ -50,11 +63,11 @@ Server at `http://localhost:8000` — Interactive docs at `/docs`.
 docker compose up -d
 
 # Or build manually
-docker build -t api-sentinel .
-docker run -p 8000:8000 --env-file .env api-sentinel
+docker build -t tokenwatch .
+docker run -p 8000:8000 --env-file .env tokenwatch
 ```
 
-## API Endpoints (20 Total)
+## API Endpoints (31 Total)
 
 ### Cost Intelligence
 | Method | Endpoint | Description |
@@ -63,6 +76,7 @@ docker run -p 8000:8000 --env-file .env api-sentinel
 | `POST` | `/api/v1/estimate/batch` | Batch cost estimation for planning |
 | `GET` | `/api/v1/pricing/{model}` | Look up any model's pricing |
 | `GET` | `/api/v1/pricing` | Full pricing table (37+ models) |
+| `POST` | `/api/v1/recommend/model` | Task-aware cheaper model recommendation with risk and savings |
 
 ### Prompt Optimization
 | Method | Endpoint | Description |
@@ -74,7 +88,29 @@ docker run -p 8000:8000 --env-file .env api-sentinel
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/v1/log` | Log an API request (model, tokens, cost, timestamp) |
-| `GET` | `/api/v1/history` | Query request history with model/date filters |
+| `GET` | `/api/v1/history` | Query persistent request history with model/date filters |
+
+### Budget Controls
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/budget/config` | Get active budget enforcement config |
+| `POST` | `/api/v1/budget/config` | Set mode: `observe`, `warn`, `block`, or `downgrade` |
+
+### Projects & API Keys
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/projects` | Create a project/app/client bucket |
+| `GET` | `/api/v1/projects` | List projects |
+| `POST` | `/api/v1/projects/{id}/keys` | Create a project API key for `X-TokenWatch-Key` |
+| `GET` | `/api/v1/projects/{id}/keys` | List key metadata without exposing secrets |
+| `GET` | `/api/v1/projects/{id}/usage` | Project-specific usage summary |
+
+### OpenAI-Compatible Proxy
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/chat/completions` | Proxy chat completions with logging, caching, budgets, and alerts |
+| `POST` | `/v1/responses` | Proxy Responses API requests |
+| `POST` | `/v1/embeddings` | Proxy embeddings requests |
 
 ### Export
 | Method | Endpoint | Description |
@@ -103,7 +139,7 @@ docker run -p 8000:8000 --env-file .env api-sentinel
 ### Dashboard
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/dashboard` | Live HTML dashboard with spend, cache, and alerts |
+| `GET` | `/dashboard` | Live HTML dashboard with spend, budgets, model costs, recommendations, requests, and alerts |
 
 ## Example: Analyze Before You Spend
 
@@ -136,6 +172,34 @@ Response:
 }
 ```
 
+## Example: Smart Model Recommendation
+
+```bash
+curl -X POST http://localhost:8000/api/v1/recommend/model \
+  -H "Content-Type: application/json" \
+  -d '{
+    "current_model": "gpt-5",
+    "task_type": "summarization",
+    "prompt_tokens": 2000,
+    "completion_tokens": 500,
+    "monthly_requests": 10000
+  }'
+```
+
+Response:
+```json
+{
+  "current_model": "gpt-5",
+  "recommended_model": "gpt-5-mini",
+  "task_type": "summarization",
+  "risk": "low",
+  "estimated_savings_pct": 80.0,
+  "monthly_savings_estimate": 21.25,
+  "yearly_savings_estimate": 255.0,
+  "reason": "Summarization usually does not need flagship reasoning."
+}
+```
+
 ## Example: Log & Export Requests
 
 ```bash
@@ -155,13 +219,13 @@ curl "http://localhost:8000/api/v1/export/json"
 ## Architecture
 
 ```
-openai-api-sentinel/
+tokenwatch/
 ├── main.py                          # FastAPI server with lifespan + dashboard
 ├── config/
 │   └── settings.py                  # Env-based configuration
 ├── src/
 │   ├── api/
-│   │   └── routes.py                # 20 API endpoints
+│   │   └── routes.py                # Control-plane endpoints + OpenAI-compatible proxy
 │   ├── core/
 │   │   ├── pricing.py               # 37+ model pricing engine (OpenAI, Claude, Gemini)
 │   │   ├── token_counter.py         # tiktoken-backed token counting
@@ -173,8 +237,8 @@ openai-api-sentinel/
 │   ├── models/
 │   │   └── schemas.py               # Pydantic v2 schemas
 │   └── services/
-│       ├── analytics.py             # Usage aggregation & forecasting
-│       └── request_logger.py        # In-memory request log with filtering
+│       ├── analytics.py             # Usage aggregation & forecasting over request_logger
+│       └── request_logger.py        # SQLite-backed request log with filtering
 ├── templates/
 │   └── dashboard.html               # Live HTML dashboard
 ├── tests/                           # 129 tests across 11 test files
@@ -215,7 +279,7 @@ Covers 37+ models across OpenAI, Anthropic (Claude), and Google (Gemini):
 python -m pytest tests/ -v
 ```
 
-All 129 tests run offline — no API keys required.
+All tests run offline — no API keys required.
 
 ## Use Cases
 

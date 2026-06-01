@@ -1,36 +1,46 @@
-"""API routes — the control plane for monitoring and optimizing OpenAI spend."""
+"""API routes — TokenWatch control plane and OpenAI-compatible proxy."""
+
+from __future__ import annotations
 
 import csv
 import io
 import logging
-import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-
 from src.models.schemas import (
     HealthResponse,
     ProxyRequest,
-    ProxyResponse,
     PromptAnalysis,
     UsageSummary,
     CostForecast,
     WebhookConfig,
+    ModelRecommendationRequest,
+    ModelRecommendationResponse,
+    ProjectCreate,
+    ProjectResponse,
+    APIKeyCreate,
+    APIKeyResponse,
 )
 from src.core.pricing import calculate_cost, get_tier, suggest_cheaper_model, estimate_batch_cost
-from src.core.token_counter import count_message_tokens, hash_prompt
+from src.core.recommendations import recommend_model
+from src.core.token_counter import count_message_tokens
 from src.core.prompt_optimizer import analyze_prompt, compress_messages
 from src.core.cache import response_cache
 from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
-from src.services.analytics import log_request, get_usage_summary, get_cost_forecast
-from src.services.request_logger import request_logger, RequestEntry
+from src.core.budget import configure_budget, get_budget_config
 from src.middleware.rate_limiter import rate_limiter
+from src.services.analytics import get_usage_summary, get_cost_forecast
+from src.services.projects import project_store, project_to_dict
+from src.services.proxy import proxy_to_openai
+from src.services.request_logger import request_logger, RequestEntry
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+proxy_router = APIRouter()
 
 
 # --- Health ---
@@ -41,7 +51,7 @@ async def health_check():
     cache_stats = response_cache.stats()
     return HealthResponse(
         cache_entries=cache_stats["entries"],
-        requests_logged_today=0,  # TODO: wire to analytics
+        requests_logged_today=request_logger.count_today(),
     )
 
 
@@ -49,11 +59,7 @@ async def health_check():
 
 @router.post("/analyze/prompt", response_model=PromptAnalysis)
 async def analyze_prompt_endpoint(request: ProxyRequest):
-    """Analyze a prompt for waste, redundancy, and optimization opportunities.
-    
-    Send the same messages you'd send to OpenAI — get back a cost breakdown
-    and actionable suggestions before spending a single token.
-    """
+    """Analyze a prompt for waste, redundancy, and optimization opportunities."""
     return analyze_prompt(request.messages, request.model)
 
 
@@ -84,7 +90,6 @@ async def optimize_prompt(request: ProxyRequest):
 async def estimate_cost(request: ProxyRequest):
     """Pre-request cost estimate — know what you'll spend before you spend it."""
     prompt_tokens = count_message_tokens(request.messages, request.model)
-    # Estimate completion tokens (conservative 1:1 ratio, capped at max_tokens)
     est_completion = min(prompt_tokens, request.max_tokens or 4000)
     cost = calculate_cost(request.model, prompt_tokens, est_completion)
     tier = get_tier(request.model)
@@ -115,6 +120,43 @@ async def estimate_batch(
     return estimate_batch_cost(model, avg_prompt_tokens, avg_completion_tokens, count)
 
 
+# --- Model Recommendations ---
+
+@router.post("/recommend/model", response_model=ModelRecommendationResponse)
+async def recommend_model_endpoint(request: ModelRecommendationRequest):
+    """Task-aware recommendation for cheaper model routing."""
+    return recommend_model(
+        current_model=request.current_model,
+        task_type=request.task_type,
+        prompt_tokens=request.prompt_tokens,
+        completion_tokens=request.completion_tokens,
+        monthly_requests=request.monthly_requests,
+    )
+
+
+# --- Budget Controls ---
+
+@router.get("/budget/config")
+async def budget_config():
+    """Current budget enforcement configuration."""
+    return get_budget_config()
+
+
+@router.post("/budget/config")
+async def set_budget_config(
+    mode: str = "observe",
+    daily_budget: Optional[float] = None,
+    per_request_max: Optional[float] = None,
+    downgrade_task_type: Optional[str] = None,
+):
+    """Set hard budget control mode: observe, warn, block, or downgrade."""
+    try:
+        config = configure_budget(mode, daily_budget, per_request_max, downgrade_task_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid budget mode: {mode}") from exc
+    return {"status": "configured", "budget": config}
+
+
 # --- Analytics ---
 
 @router.get("/analytics/usage", response_model=UsageSummary)
@@ -137,11 +179,7 @@ async def alerts(limit: int = 50):
 
 @router.post("/alerts/configure")
 async def configure_alerts_webhook(config: WebhookConfig):
-    """Configure webhook delivery for alerts.
-    
-    Set a URL to receive POST notifications when cost alerts fire.
-    Optionally set a custom spend threshold.
-    """
+    """Configure webhook delivery for alerts."""
     result = configure_webhook(
         url=config.url,
         threshold=config.threshold,
@@ -198,15 +236,13 @@ async def log_api_request(
     cost_usd: float,
     timestamp: Optional[str] = None,
     request_id: Optional[str] = None,
+    endpoint: str = "",
 ):
-    """Log an API request for tracking and analysis.
-    
-    Record every API call with model, token counts, and cost.
-    Use this to build a complete picture of your OpenAI spend.
-    """
+    """Log an API request for tracking and analysis."""
     ts = datetime.fromisoformat(timestamp) if timestamp else datetime.now()
     entry = RequestEntry(
         model=model,
+        endpoint=endpoint,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=prompt_tokens + completion_tokens,
@@ -215,6 +251,7 @@ async def log_api_request(
         request_id=request_id or str(uuid.uuid4())[:8],
     )
     request_logger.log(entry)
+    check_and_alert(cost_usd, get_daily_spend(), model)
     return {
         "status": "logged",
         "request_id": entry.request_id,
@@ -229,10 +266,7 @@ async def request_history(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ):
-    """Retrieve recent API request history with optional filtering.
-    
-    Filter by model name, date range, or both. Returns newest first.
-    """
+    """Retrieve recent API request history with optional filtering."""
     sd = datetime.fromisoformat(start_date) if start_date else None
     ed = datetime.fromisoformat(end_date) if end_date else None
 
@@ -289,8 +323,9 @@ async def export_csv(
     def generate_csv():
         output = io.StringIO()
         fieldnames = [
-            "model", "prompt_tokens", "completion_tokens",
+            "model", "endpoint", "prompt_tokens", "completion_tokens",
             "total_tokens", "cost_usd", "timestamp", "request_id",
+            "status_code", "cache_hit", "cost_saved_usd",
         ]
         writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
@@ -307,7 +342,7 @@ async def export_csv(
     return StreamingResponse(
         generate_csv(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=api_sentinel_export.csv"},
+        headers={"Content-Disposition": "attachment; filename=tokenwatch_export.csv"},
     )
 
 
@@ -316,7 +351,7 @@ async def export_csv(
 @router.get("/pricing/{model}")
 async def model_pricing(model: str):
     """Look up pricing for any OpenAI model."""
-    from src.core.pricing import get_pricing, MODEL_PRICING
+    from src.core.pricing import get_pricing
     input_price, output_price, tier = get_pricing(model)
     return {
         "model": model,
@@ -340,3 +375,62 @@ async def all_pricing():
         }
         for model, price in sorted(MODEL_PRICING.items())
     }
+
+
+# --- Projects & API Keys ---
+
+@router.post("/projects", response_model=ProjectResponse)
+async def create_project(project: ProjectCreate):
+    """Create a project for grouping usage and API keys."""
+    return project_to_dict(project_store.create_project(project.name, project.daily_budget))
+
+
+@router.get("/projects", response_model=list[ProjectResponse])
+async def list_projects():
+    """List configured projects."""
+    return [project_to_dict(project) for project in project_store.list_projects()]
+
+
+@router.post("/projects/{project_id}/keys", response_model=APIKeyResponse)
+async def create_project_key(project_id: str, key: APIKeyCreate):
+    """Create a project API key. The raw key is only returned once."""
+    result = project_store.create_api_key(project_id, key.name)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return result
+
+
+@router.get("/projects/{project_id}/keys")
+async def list_project_keys(project_id: str):
+    """List key metadata for a project. Raw key secrets are never returned here."""
+    if not project_store.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"keys": project_store.list_api_keys(project_id)}
+
+
+@router.get("/projects/{project_id}/usage")
+async def project_usage(project_id: str):
+    """Usage summary for requests tagged with a project API key."""
+    if not project_store.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project_store.usage(project_id)
+
+
+# --- OpenAI-Compatible Proxy ---
+
+@proxy_router.post("/v1/chat/completions")
+async def proxy_chat_completions(payload: dict[str, Any], request: Request):
+    """OpenAI-compatible chat completions proxy."""
+    return await proxy_to_openai("/v1/chat/completions", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))
+
+
+@proxy_router.post("/v1/responses")
+async def proxy_responses(payload: dict[str, Any], request: Request):
+    """OpenAI-compatible Responses API proxy."""
+    return await proxy_to_openai("/v1/responses", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))
+
+
+@proxy_router.post("/v1/embeddings")
+async def proxy_embeddings(payload: dict[str, Any], request: Request):
+    """OpenAI-compatible embeddings proxy."""
+    return await proxy_to_openai("/v1/embeddings", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))

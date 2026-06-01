@@ -1,24 +1,44 @@
-"""Analytics engine — turn raw request logs into actionable insights.
+"""Analytics engine — turn logged requests into actionable spend insights."""
 
-The goal: answer "where is my money going?" in under a second.
-"""
+from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional
-from collections import defaultdict
 
-from src.core.pricing import calculate_cost, suggest_cheaper_model, estimate_batch_cost
 from src.core.alerts import get_daily_spend
 from src.models.schemas import UsageSummary, CostForecast
-
-
-# In-memory request store (swap for DB in production)
-_request_log: list[dict] = []
+from src.services.request_logger import request_logger, RequestEntry
 
 
 def log_request(entry: dict) -> None:
-    """Record a completed API request."""
-    _request_log.append({**entry, "logged_at": datetime.now()})
+    """Record a completed API request through the canonical request logger."""
+    timestamp = entry.get("logged_at") or entry.get("timestamp") or datetime.now()
+    if isinstance(timestamp, str):
+        timestamp = datetime.fromisoformat(timestamp)
+
+    prompt_tokens = int(entry.get("prompt_tokens", 0))
+    completion_tokens = int(entry.get("completion_tokens", 0))
+    total_tokens = int(entry.get("total_tokens", prompt_tokens + completion_tokens))
+
+    request_logger.log(RequestEntry(
+        model=entry.get("model", "unknown"),
+        endpoint=entry.get("endpoint", ""),
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        cost_usd=float(entry.get("cost_usd", 0.0)),
+        latency_ms=float(entry.get("latency_ms", 0.0)),
+        status_code=int(entry.get("status_code", 200)),
+        cache_hit=bool(entry.get("cache_hit", False)),
+        tokens_saved=int(entry.get("tokens_saved", 0)),
+        cost_saved_usd=float(entry.get("cost_saved_usd", 0.0)),
+        prompt_hash=entry.get("prompt_hash"),
+        user_id=entry.get("user_id"),
+        timestamp=timestamp,
+        request_id=entry.get("request_id", ""),
+        metadata=entry.get("metadata", {}),
+    ))
 
 
 def get_usage_summary(
@@ -28,9 +48,9 @@ def get_usage_summary(
     """Aggregate usage stats for the given time window."""
     cutoff = datetime.now() - timedelta(hours=hours)
     filtered = [
-        r for r in _request_log
-        if r.get("logged_at", datetime.min) >= cutoff
-        and (model_filter is None or r.get("model") == model_filter)
+        r for r in request_logger.entries()
+        if r.timestamp >= cutoff
+        and (model_filter is None or r.model == model_filter)
     ]
 
     if not filtered:
@@ -51,36 +71,34 @@ def get_usage_summary(
             duplicate_request_count=0,
         )
 
-    total_tokens = sum(r.get("total_tokens", 0) for r in filtered)
-    total_prompt = sum(r.get("prompt_tokens", 0) for r in filtered)
-    total_completion = sum(r.get("completion_tokens", 0) for r in filtered)
-    total_cost = sum(r.get("cost_usd", 0) for r in filtered)
-    total_saved = sum(r.get("cost_saved_usd", 0) for r in filtered)
-    cache_hits = sum(1 for r in filtered if r.get("cache_hit", False))
-    latencies = [r.get("latency_ms", 0) for r in filtered if r.get("latency_ms", 0) > 0]
+    total_tokens = sum(r.total_tokens for r in filtered)
+    total_prompt = sum(r.prompt_tokens for r in filtered)
+    total_completion = sum(r.completion_tokens for r in filtered)
+    total_cost = sum(r.cost_usd for r in filtered)
+    total_saved = sum(r.cost_saved_usd for r in filtered)
+    cache_hits = sum(1 for r in filtered if r.cache_hit)
+    latencies = [r.latency_ms for r in filtered if r.latency_ms > 0]
 
-    # Group by model
     by_model_count: dict[str, int] = defaultdict(int)
     by_model_cost: dict[str, float] = defaultdict(float)
     for r in filtered:
-        model = r.get("model", "unknown")
-        by_model_count[model] += 1
-        by_model_cost[model] += r.get("cost_usd", 0)
+        by_model_count[r.model] += 1
+        by_model_cost[r.model] += r.cost_usd
 
-    # Find most expensive requests
-    sorted_by_cost = sorted(filtered, key=lambda r: r.get("cost_usd", 0), reverse=True)
+    sorted_by_cost = sorted(filtered, key=lambda r: r.cost_usd, reverse=True)
     top_expensive = [
         {
-            "model": r.get("model"),
-            "cost_usd": round(r.get("cost_usd", 0), 4),
-            "total_tokens": r.get("total_tokens", 0),
-            "timestamp": r.get("logged_at", "").isoformat() if isinstance(r.get("logged_at"), datetime) else str(r.get("logged_at", "")),
+            "model": r.model,
+            "cost_usd": round(r.cost_usd, 4),
+            "total_tokens": r.total_tokens,
+            "timestamp": r.timestamp.isoformat(),
+            "request_id": r.request_id,
+            "endpoint": r.endpoint,
         }
         for r in sorted_by_cost[:10]
     ]
 
-    # Count duplicate prompts
-    hashes = [r.get("prompt_hash") for r in filtered if r.get("prompt_hash")]
+    hashes = [r.prompt_hash for r in filtered if r.prompt_hash]
     seen = set()
     dupes = 0
     for h in hashes:

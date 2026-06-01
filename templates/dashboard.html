@@ -3,196 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Sentinel — Dashboard</title>
+    <title>TokenWatch — Dashboard</title>
     <style>
         :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --border: #334155;
+            --bg: #070b14;
+            --panel: rgba(15, 23, 42, 0.86);
+            --card: rgba(30, 41, 59, 0.72);
+            --card-strong: rgba(15, 23, 42, 0.96);
+            --border: rgba(148, 163, 184, 0.22);
             --text: #e2e8f0;
             --muted: #94a3b8;
             --accent: #38bdf8;
+            --purple: #a78bfa;
             --green: #22c55e;
             --yellow: #eab308;
             --red: #ef4444;
+            --orange: #fb923c;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32rem),
+                radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 30rem),
+                var(--bg);
             color: var(--text);
             min-height: 100vh;
             padding: 2rem;
         }
-        h1 {
-            font-size: 1.75rem;
-            margin-bottom: 0.25rem;
-        }
-        .subtitle {
-            color: var(--muted);
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-        .card-label {
-            color: var(--muted);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-        .card-value {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        .card-value.green { color: var(--green); }
-        .card-value.accent { color: var(--accent); }
-        .card-value.yellow { color: var(--yellow); }
-        .card-value.red { color: var(--red); }
-        .card-detail {
-            color: var(--muted);
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        th, td {
-            text-align: left;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-        th {
-            color: var(--muted);
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .alert-badge {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .alert-critical { background: #7f1d1d; color: #fca5a5; }
-        .alert-warning { background: #78350f; color: #fde68a; }
-        .alert-info { background: #0c4a6e; color: #7dd3fc; }
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        .empty {
-            color: var(--muted);
-            text-align: center;
-            padding: 2rem;
-            font-style: italic;
-        }
+        .shell { max-width: 1380px; margin: 0 auto; }
         .header {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.25rem;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
-        .header .shield { font-size: 1.75rem; }
+        .brand { display: flex; align-items: center; gap: 0.8rem; }
+        .brand-icon { font-size: 2rem; }
+        h1 { font-size: 2rem; line-height: 1; }
+        .subtitle { color: var(--muted); margin-top: 0.35rem; font-size: 0.95rem; }
+        .pill-row { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; }
+        .pill {
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.72);
+            border-radius: 999px;
+            padding: 0.45rem 0.75rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+        .pill strong { color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
+        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; margin-bottom: 1rem; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1.25rem;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+            backdrop-filter: blur(16px);
+        }
+        .span-3 { grid-column: span 3; }
+        .span-4 { grid-column: span 4; }
+        .span-5 { grid-column: span 5; }
+        .span-6 { grid-column: span 6; }
+        .span-7 { grid-column: span 7; }
+        .span-8 { grid-column: span 8; }
+        .span-12 { grid-column: span 12; }
+        .card-label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.55rem;
+        }
+        .card-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
+        .green { color: var(--green); }
+        .accent { color: var(--accent); }
+        .yellow { color: var(--yellow); }
+        .red { color: var(--red); }
+        .purple { color: var(--purple); }
+        .card-detail { color: var(--muted); font-size: 0.86rem; margin-top: 0.45rem; }
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 750;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .section-kicker { color: var(--muted); font-size: 0.78rem; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+        th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        tr:last-child td { border-bottom: none; }
+        .bar { height: 8px; background: rgba(148, 163, 184, 0.18); border-radius: 999px; overflow: hidden; margin-top: 0.4rem; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple)); border-radius: 999px; }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.22rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-critical, .badge-high, .badge-red { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+        .badge-warning, .badge-medium, .badge-yellow { background: rgba(234, 179, 8, 0.16); color: #fde68a; }
+        .badge-info { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; }
+        .badge-low, .badge-success, .badge-green { background: rgba(34, 197, 94, 0.16); color: #86efac; }
+        .recommendation {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(167, 139, 250, 0.16));
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+        .rec-models { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.8rem 0; }
+        .model-chip {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.55rem 0.75rem;
+            font-weight: 700;
+        }
+        .arrow { color: var(--muted); }
+        .opportunity { display: grid; gap: 0.25rem; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+        .opportunity:last-child { border-bottom: none; }
+        .op-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+        .op-detail { color: var(--muted); font-size: 0.88rem; }
+        .empty { color: var(--muted); text-align: center; padding: 2rem; font-style: italic; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .truncate { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 1100px) {
+            .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
+            .header { align-items: flex-start; flex-direction: column; }
+            .pill-row { justify-content: flex-start; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <span class="shield">🛡️</span>
-        <h1>API Sentinel</h1>
-    </div>
-    <p class="subtitle">Real-time OpenAI API cost monitoring &amp; optimization</p>
-
-    <div class="grid">
-        <div class="card">
-            <div class="card-label">Daily Spend</div>
-            <div class="card-value {% if daily_spend > budget * 0.8 %}red{% elif daily_spend > budget * 0.5 %}yellow{% else %}green{% endif %}">
-                ${{ "%.2f"|format(daily_spend) }}
+<div class="shell">
+    <header class="header">
+        <div class="brand">
+            <span class="brand-icon">👁️</span>
+            <div>
+                <h1>TokenWatch</h1>
+                <p class="subtitle">Real-time AI API spend control, proxy monitoring, and optimization.</p>
             </div>
-            <div class="card-detail">Budget: ${{ "%.2f"|format(budget) }}/day</div>
         </div>
-        <div class="card">
-            <div class="card-label">Cache Hit Rate</div>
-            <div class="card-value accent">{{ "%.1f"|format(cache_hit_rate) }}%</div>
-            <div class="card-detail">{{ cache_entries }} entries cached</div>
+        <div class="pill-row">
+            <span class="pill">Budget mode: <strong>{{ budget_mode }}</strong></span>
+            <span class="pill">Per request max: <strong>${{ "%.2f"|format(per_request_max) }}</strong></span>
+            <span class="pill">Window: <strong>24h</strong></span>
         </div>
-        <div class="card">
+    </header>
+
+    <section class="grid">
+        <div class="card span-3">
+            <div class="card-label">Daily Spend</div>
+            <div class="card-value {% if daily_spend > budget * 0.8 %}red{% elif daily_spend > budget * 0.5 %}yellow{% else %}green{% endif %}">${{ "%.2f"|format(daily_spend) }}</div>
+            <div class="card-detail">Budget: ${{ "%.2f"|format(budget) }}/day · {{ "%.1f"|format(budget_utilization) }}% used</div>
+            <div class="bar"><div class="bar-fill" style="width: {{ [budget_utilization, 100]|min }}%"></div></div>
+        </div>
+        <div class="card span-3">
+            <div class="card-label">Projected Month</div>
+            <div class="card-value accent">${{ "%.2f"|format(projected_monthly) }}</div>
+            <div class="card-detail">Yearly projection: ${{ "%.2f"|format(projected_yearly) }}</div>
+        </div>
+        <div class="card span-3">
             <div class="card-label">Total Requests</div>
             <div class="card-value">{{ total_requests }}</div>
-            <div class="card-detail">Last 24 hours</div>
+            <div class="card-detail">{{ total_tokens }} tokens · avg latency {{ "%.1f"|format(avg_latency_ms) }}ms</div>
         </div>
-        <div class="card">
-            <div class="card-label">Tokens Saved (Cache)</div>
-            <div class="card-value green">{{ tokens_saved }}</div>
-            <div class="card-detail">${{ "%.4f"|format(cost_saved) }} saved</div>
+        <div class="card span-3">
+            <div class="card-label">Cache Hit Rate & Savings</div>
+            <div class="card-value green">${{ "%.4f"|format(cost_saved) }}</div>
+            <div class="card-detail">{{ tokens_saved }} tokens saved · {{ "%.1f"|format(cache_hit_rate) }}% hit rate · {{ cache_entries }} entries</div>
         </div>
-    </div>
+    </section>
 
-    {% if top_models %}
-    <div class="card" style="margin-bottom: 2rem;">
-        <div class="section-title">Top Models by Cost</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Model</th>
-                    <th>Requests</th>
-                    <th>Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for model in top_models %}
-                <tr>
-                    <td>{{ model.name }}</td>
-                    <td>{{ model.requests }}</td>
-                    <td>${{ "%.4f"|format(model.cost) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
+    <section class="grid">
+        <div class="card recommendation span-5">
+            <div class="section-title">
+                <span>Smart Recommendation</span>
+                <span class="badge badge-{{ smart_recommendation.risk }}">{{ smart_recommendation.risk }} risk</span>
+            </div>
+            <div class="card-label">Model route</div>
+            <div class="rec-models">
+                <span class="model-chip mono">{{ smart_recommendation.current_model }}</span>
+                <span class="arrow">→</span>
+                <span class="model-chip mono">{{ smart_recommendation.recommended_model }}</span>
+            </div>
+            <div class="card-value green">{{ "%.1f"|format(smart_recommendation.estimated_savings_pct) }}% savings</div>
+            <div class="card-detail">Monthly estimate: ${{ "%.2f"|format(smart_recommendation.monthly_savings_estimate) }} · Yearly: ${{ "%.2f"|format(smart_recommendation.yearly_savings_estimate) }}</div>
+            <p class="card-detail">{{ smart_recommendation.reason }}</p>
+        </div>
 
-    <div class="card">
-        <div class="section-title">Recent Alerts</div>
-        {% if alerts %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Level</th>
-                    <th>Message</th>
-                    <th>Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for alert in alerts %}
-                <tr>
-                    <td><span class="alert-badge alert-{{ alert.level }}">{{ alert.level }}</span></td>
-                    <td>{{ alert.message }}</td>
-                    <td>{{ alert.triggered_at }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="empty">No alerts — everything looks good 🎉</p>
-        {% endif %}
-    </div>
+        <div class="card span-7">
+            <div class="section-title">
+                <span>Optimization Opportunities</span>
+                <span class="section-kicker">Auto-detected from usage</span>
+            </div>
+            {% for item in opportunities %}
+            <div class="opportunity">
+                <div class="op-title"><span class="badge badge-{{ item.severity }}">{{ item.severity }}</span>{{ item.title }}</div>
+                <div class="op-detail">{{ item.detail }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="card span-6">
+            <div class="section-title">
+                <span>Model Cost Breakdown</span>
+                <span class="section-kicker">Top models by spend</span>
+            </div>
+            {% if top_models %}
+            <table>
+                <thead><tr><th>Model</th><th>Requests</th><th>Cost</th><th>Share</th></tr></thead>
+                <tbody>
+                    {% for model in top_models %}
+                    <tr>
+                        <td class="mono">{{ model.name }}</td>
+                        <td>{{ model.requests }}</td>
+                        <td>${{ "%.4f"|format(model.cost) }}</td>
+                        <td>{{ "%.1f"|format(model.share_pct) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty">No model spend yet. Send traffic through TokenWatch to populate this view.</p>
+            {% endif %}
+        </div>
+
+        <div class="card span-6">
+            <div class="section-title">
+                <span>Top Expensive Requests</span>
+                <span class="section-kicker">Highest cost in 24h</span>
+            </div>
+            {% if top_expensive_requests %}
+            <table>
+                <thead><tr><th>Model</th><th>Tokens</th><th>Cost</th><th>Endpoint</th></tr></thead>
+                <tbody>
+                    {% for req in top_expensive_requests[:5] %}
+                    <tr>
+                        <td class="mono">{{ req.model }}</td>
+                        <td>{{ req.total_tokens }}</td>
+                        <td>${{ "%.4f"|format(req.cost_usd) }}</td>
+                        <td class="truncate mono">{{ req.endpoint or "manual" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty">No expensive requests yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="card span-8">
+            <div class="section-title">
+                <span>Recent Requests</span>
+                <span class="section-kicker">Persistent SQLite history</span>
+            </div>
+            {% if recent_requests %}
+            <table>
+                <thead><tr><th>Time</th><th>Model</th><th>Endpoint</th><th>Tokens</th><th>Cost</th><th>Cache</th></tr></thead>
+                <tbody>
+                    {% for req in recent_requests %}
+                    <tr>
+                        <td class="mono truncate">{{ req.timestamp }}</td>
+                        <td class="mono">{{ req.model }}</td>
+                        <td class="mono truncate">{{ req.endpoint or "manual" }}</td>
+                        <td>{{ req.total_tokens }}</td>
+                        <td>${{ "%.4f"|format(req.cost_usd) }}</td>
+                        <td>{% if req.cache_hit %}<span class="badge badge-green">hit</span>{% else %}<span class="badge badge-info">miss</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty">No recent requests. Try `/api/v1/log` or proxy through `/v1/chat/completions`.</p>
+            {% endif %}
+        </div>
+
+        <div class="card span-4">
+            <div class="section-title">Recent Alerts</div>
+            {% if alerts %}
+            <table>
+                <thead><tr><th>Level</th><th>Message</th></tr></thead>
+                <tbody>
+                    {% for alert in alerts[:6] %}
+                    <tr>
+                        <td><span class="badge badge-{{ alert.level }}">{{ alert.level }}</span></td>
+                        <td>{{ alert.message }}<br><span class="card-detail mono">{{ alert.triggered_at }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty">No alerts — everything looks good 🎉</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
 </body>
 </html>

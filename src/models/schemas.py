@@ -23,6 +23,25 @@ class AlertLevel(str, Enum):
     CRITICAL = "critical"
 
 
+class TaskType(str, Enum):
+    """Workload categories for model recommendation."""
+    GENERAL = "general"
+    SIMPLE = "simple"
+    CHAT = "chat"
+    CODING = "coding"
+    SUMMARIZATION = "summarization"
+    CLASSIFICATION = "classification"
+    EXTRACTION = "extraction"
+    REASONING = "reasoning"
+
+
+class RecommendationRisk(str, Enum):
+    """Quality/regression risk from switching models."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 # --- Request Logging ---
 
 class APIRequestLog(BaseModel):
@@ -91,6 +110,38 @@ class PromptAnalysis(BaseModel):
     model_recommendation: Optional[str] = None
 
 
+# --- Model Recommendations ---
+
+class ModelRecommendationRequest(BaseModel):
+    """Request for task-aware model optimization guidance."""
+    current_model: str = Field(..., description="Current model used by the workload")
+    task_type: TaskType = Field(TaskType.GENERAL, description="Workload type")
+    prompt_tokens: int = Field(..., ge=0, description="Average prompt/input tokens per request")
+    completion_tokens: int = Field(..., ge=0, description="Average completion/output tokens per request")
+    monthly_requests: int = Field(10_000, ge=1, description="Projected monthly request volume")
+
+
+class ModelRecommendationResponse(BaseModel):
+    """Task-aware recommendation with cost and risk metadata."""
+    current_model: str
+    recommended_model: str
+    task_type: TaskType
+    risk: RecommendationRisk
+    current_tier: ModelTier
+    recommended_tier: ModelTier
+    prompt_tokens: int
+    completion_tokens: int
+    monthly_requests: int
+    current_cost_usd: float
+    recommended_cost_usd: float
+    estimated_savings_pct: float
+    monthly_savings_estimate: float
+    yearly_savings_estimate: float
+    reason: str
+    pricing: dict
+    alternatives: list[dict]
+
+
 # --- Alerts ---
 
 class CostAlert(BaseModel):
@@ -120,6 +171,34 @@ class WebhookConfig(BaseModel):
     enabled: bool = True
 
 
+# --- Projects ---
+
+class ProjectCreate(BaseModel):
+    """Create a project for grouping TokenWatch usage."""
+    name: str = Field(..., min_length=1, max_length=120)
+    daily_budget: Optional[float] = Field(None, ge=0)
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    daily_budget: Optional[float] = None
+    created_at: str
+
+
+class APIKeyCreate(BaseModel):
+    """Create an API key scoped to a project."""
+    name: str = Field("default", min_length=1, max_length=120)
+
+
+class APIKeyResponse(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    api_key: str
+    created_at: str
+
+
 # --- Proxy ---
 
 class ProxyRequest(BaseModel):
@@ -135,4 +214,4 @@ class ProxyRequest(BaseModel):
 class ProxyResponse(BaseModel):
     """Enriched response with cost and optimization metadata."""
     openai_response: dict
-    sentinel_metadata: dict
+    tokenwatch_metadata: dict

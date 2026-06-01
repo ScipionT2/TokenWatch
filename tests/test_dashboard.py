@@ -16,7 +16,7 @@ class TestDashboard:
 
     def test_dashboard_contains_title(self):
         r = client.get("/dashboard")
-        assert "API Sentinel" in r.text
+        assert "TokenWatch" in r.text
 
     def test_dashboard_contains_spend_section(self):
         r = client.get("/dashboard")
@@ -34,3 +34,23 @@ class TestDashboard:
     def test_dashboard_contains_requests_section(self):
         r = client.get("/dashboard")
         assert "Total Requests" in r.text
+
+    def test_dashboard_contains_budget_mode(self):
+        r = client.get("/dashboard")
+        assert "Budget mode" in r.text
+
+    def test_dashboard_contains_smart_recommendation(self):
+        r = client.get("/dashboard")
+        assert "Smart Recommendation" in r.text
+
+    def test_dashboard_contains_optimization_opportunities(self):
+        r = client.get("/dashboard")
+        assert "Optimization Opportunities" in r.text
+
+    def test_dashboard_contains_recent_requests_table(self):
+        r = client.get("/dashboard")
+        assert "Recent Requests" in r.text
+
+    def test_dashboard_contains_model_breakdown(self):
+        r = client.get("/dashboard")
+        assert "Model Cost Breakdown" in r.text
