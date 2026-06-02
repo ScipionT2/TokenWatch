@@ -6,7 +6,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-158%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-165%20passed-brightgreen.svg)]()
 [![CI](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml/badge.svg)](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml)
 
 ## The Problem
@@ -30,6 +30,7 @@ TokenWatch sits between your application and AI providers. It analyzes every req
 - **📊 SaaS-Style Dashboard** — Spend overview, budget status, model breakdown, recommendations, opportunities, recent requests, and alerts at `/dashboard`
 - **📜 Persistent Request History** — Log every API call to SQLite and query history with model/date filters
 - **🔑 Projects & API Keys** — Group usage by app/client with `X-TokenWatch-Key` project keys
+- **🔐 Optional Admin API Protection** — Set `TOKENWATCH_ADMIN_KEY` to lock sensitive control-plane endpoints behind `X-TokenWatch-Admin-Key`
 - **📤 Data Export** — Export request history as CSV or JSON for analysis in external tools
 - **💡 Smart Model Recommendations** — Task-aware model swaps with risk, savings, monthly/yearly projections, and reasoning
 - **🐳 Docker Ready** — One-command deployment with Docker Compose
@@ -47,6 +48,12 @@ tokenwatch serve
 ```
 
 Server at `http://localhost:8000` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
+
+For deploys beyond local demo mode, set `TOKENWATCH_ADMIN_KEY` in `.env`. Sensitive admin/control-plane endpoints then require:
+
+```bash
+-H "X-TokenWatch-Admin-Key: your-admin-key"
+```
 
 Useful CLI commands:
 
@@ -149,7 +156,7 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 ### Infrastructure
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/health` | System health with cache stats |
+| `GET` | `/api/v1/health` | System health with cache stats and admin auth status |
 | `GET` | `/api/v1/cache/stats` | Cache hit rate and savings |
 | `POST` | `/api/v1/cache/clear` | Flush response cache |
 | `GET` | `/api/v1/rate-limit/status` | Current RPM/TPM utilization |
@@ -219,6 +226,25 @@ Response:
 }
 ```
 
+## Example: Admin-Protected Control Plane
+
+Local demos are zero-config. For production-ish deployments, add this to `.env`:
+
+```bash
+TOKENWATCH_ADMIN_KEY=change-this-long-random-secret
+```
+
+Then call sensitive endpoints with the admin header:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -H "X-TokenWatch-Admin-Key: change-this-long-random-secret" \
+  -d '{"name":"Production App","daily_budget":25}'
+```
+
+Protected endpoints include project/key creation, manual request logging, cache clearing, export, budget changes, and alert webhook configuration. The OpenAI-compatible proxy still uses project keys via `X-TokenWatch-Key`.
+
 ## Example: Log & Export Requests
 
 ```bash
@@ -260,7 +286,7 @@ tokenwatch/
 │       └── request_logger.py        # SQLite-backed request log with filtering
 ├── templates/
 │   └── dashboard.html               # Live HTML dashboard
-├── tests/                           # 129 tests across 11 test files
+├── tests/                           # 165 tests across the offline suite
 │   ├── test_pricing.py              # 30 tests (incl. Claude/Gemini)
 │   ├── test_token_counter.py        # 10 tests
 │   ├── test_cache.py                # 9 tests

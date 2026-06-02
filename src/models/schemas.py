@@ -160,6 +160,7 @@ class HealthResponse(BaseModel):
     database: str = "connected"
     cache_entries: int = 0
     requests_logged_today: int = 0
+    admin_auth_enabled: bool = False
 
 
 # --- Webhook Configuration ---

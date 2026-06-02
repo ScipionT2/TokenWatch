@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from src.models.schemas import (
     HealthResponse,
@@ -32,6 +32,7 @@ from src.core.prompt_optimizer import analyze_prompt, compress_messages
 from src.core.cache import response_cache
 from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
 from src.core.budget import configure_budget, get_budget_config
+from src.core.auth import require_admin_key, admin_auth_enabled
 from src.middleware.rate_limiter import rate_limiter
 from src.services.analytics import get_usage_summary, get_cost_forecast
 from src.services.projects import project_store, project_to_dict
@@ -52,6 +53,7 @@ async def health_check():
     return HealthResponse(
         cache_entries=cache_stats["entries"],
         requests_logged_today=request_logger.count_today(),
+        admin_auth_enabled=admin_auth_enabled(),
     )
 
 
@@ -148,6 +150,7 @@ async def set_budget_config(
     daily_budget: Optional[float] = None,
     per_request_max: Optional[float] = None,
     downgrade_task_type: Optional[str] = None,
+    _: bool = Depends(require_admin_key),
 ):
     """Set hard budget control mode: observe, warn, block, or downgrade."""
     try:
@@ -178,7 +181,7 @@ async def alerts(limit: int = 50):
 
 
 @router.post("/alerts/configure")
-async def configure_alerts_webhook(config: WebhookConfig):
+async def configure_alerts_webhook(config: WebhookConfig, _: bool = Depends(require_admin_key)):
     """Configure webhook delivery for alerts."""
     result = configure_webhook(
         url=config.url,
@@ -206,7 +209,7 @@ async def cache_stats():
 
 
 @router.post("/cache/clear")
-async def clear_cache():
+async def clear_cache(_: bool = Depends(require_admin_key)):
     """Flush the response cache."""
     count = response_cache.clear()
     return {"cleared": count}
@@ -237,6 +240,7 @@ async def log_api_request(
     timestamp: Optional[str] = None,
     request_id: Optional[str] = None,
     endpoint: str = "",
+    _: bool = Depends(require_admin_key),
 ):
     """Log an API request for tracking and analysis."""
     ts = datetime.fromisoformat(timestamp) if timestamp else datetime.now()
@@ -291,6 +295,7 @@ async def export_json(
     model: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    _: bool = Depends(require_admin_key),
 ):
     """Export request history as JSON."""
     sd = datetime.fromisoformat(start_date) if start_date else None
@@ -309,6 +314,7 @@ async def export_csv(
     model: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    _: bool = Depends(require_admin_key),
 ):
     """Export request history as CSV with proper Content-Disposition header."""
     sd = datetime.fromisoformat(start_date) if start_date else None
@@ -380,7 +386,7 @@ async def all_pricing():
 # --- Projects & API Keys ---
 
 @router.post("/projects", response_model=ProjectResponse)
-async def create_project(project: ProjectCreate):
+async def create_project(project: ProjectCreate, _: bool = Depends(require_admin_key)):
     """Create a project for grouping usage and API keys."""
     return project_to_dict(project_store.create_project(project.name, project.daily_budget))
 
@@ -392,7 +398,7 @@ async def list_projects():
 
 
 @router.post("/projects/{project_id}/keys", response_model=APIKeyResponse)
-async def create_project_key(project_id: str, key: APIKeyCreate):
+async def create_project_key(project_id: str, key: APIKeyCreate, _: bool = Depends(require_admin_key)):
     """Create a project API key. The raw key is only returned once."""
     result = project_store.create_api_key(project_id, key.name)
     if result is None:

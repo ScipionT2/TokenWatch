@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
+    tokenwatch_admin_key: str = ""  # optional: protects control-plane admin endpoints
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./tokenwatch.db"

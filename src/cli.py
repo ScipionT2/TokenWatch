@@ -41,6 +41,7 @@ def init_env(env_file: Path = ENV_FILE, env_example: Path = ENV_EXAMPLE) -> str:
             "HOST=0.0.0.0\n"
             "PORT=8000\n"
             "LOG_LEVEL=info\n"
+            "TOKENWATCH_ADMIN_KEY=\n"
             "DATABASE_URL=sqlite+aiosqlite:///./tokenwatch.db\n"
             "BUDGET_MODE=observe\n"
         )
@@ -57,6 +58,7 @@ def status_text() -> str:
         f"  Docs: http://localhost:{settings.port}/docs",
         f"  Database: {settings.database_url}",
         f"  Budget mode: {settings.budget_mode}",
+        f"  Admin API protection: {'enabled' if settings.tokenwatch_admin_key else 'disabled'}",
         f"  OpenAI proxy forwarding: {'ready' if has_key else 'needs OPENAI_API_KEY'}",
     ])
 
