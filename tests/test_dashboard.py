@@ -54,3 +54,16 @@ class TestDashboard:
     def test_dashboard_contains_model_breakdown(self):
         r = client.get("/dashboard")
         assert "Model Cost Breakdown" in r.text
+
+    def test_setup_returns_html(self):
+        r = client.get("/setup")
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+        assert "Setup wizard" in r.text
+        assert "Create project + key" in r.text
+
+    def test_dashboard_contains_project_key_management(self):
+        r = client.get("/dashboard")
+        assert "Projects &amp; API Keys" in r.text or "Projects & API Keys" in r.text
+        assert "Create project" in r.text
+        assert "Generate" in r.text

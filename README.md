@@ -47,7 +47,7 @@ tokenwatch init
 tokenwatch serve
 ```
 
-Server at `http://localhost:8000` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
+Server at `http://localhost:8000` — Setup wizard at `/setup` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
 
 For deploys beyond local demo mode, set `TOKENWATCH_ADMIN_KEY` in `.env`. Sensitive admin/control-plane endpoints then require:
 
@@ -93,7 +93,7 @@ docker build -t tokenwatch .
 docker run -p 8000:8000 --env-file .env tokenwatch
 ```
 
-## API Endpoints (31 Total)
+## API Endpoints (32 Total)
 
 ### Cost Intelligence
 | Method | Endpoint | Description |
@@ -162,10 +162,21 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 | `GET` | `/api/v1/rate-limit/status` | Current RPM/TPM utilization |
 | `POST` | `/api/v1/rate-limit/check` | Pre-flight rate limit check |
 
-### Dashboard
+### Dashboard & Onboarding
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/dashboard` | Live HTML dashboard with spend, budgets, model costs, recommendations, requests, and alerts |
+| `GET` | `/setup` | Onboarding wizard to create a first project/API key and copy proxy setup snippets |
+| `GET` | `/dashboard` | Live HTML dashboard with spend, budgets, model costs, recommendations, requests, alerts, project usage, and API key management |
+
+## Example: First App Setup
+
+Open the setup wizard:
+
+```txt
+http://localhost:8000/setup
+```
+
+Create a project, generate a one-time `X-TokenWatch-Key`, then use the generated OpenAI-compatible snippet. The dashboard also includes a **Projects & API Keys** panel for creating projects/keys later and copying proxy snippets.
 
 ## Example: Analyze Before You Spend
 

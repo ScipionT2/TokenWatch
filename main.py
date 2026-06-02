@@ -18,6 +18,7 @@ from src.core.recommendations import recommend_model
 from src.models.schemas import TaskType
 from src.services.analytics import get_usage_summary, get_cost_forecast
 from src.services.request_logger import request_logger
+from src.services.projects import project_store, project_to_dict
 
 
 logging.basicConfig(
@@ -69,6 +70,13 @@ app.include_router(proxy_router)
 # Starlette TemplateResponse caching issues on Python 3.14
 _templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 _jinja_env = Environment(loader=FileSystemLoader(_templates_dir), autoescape=True)
+
+
+@app.get("/setup", response_class=HTMLResponse)
+async def setup(request: Request):
+    """Onboarding flow for creating a first project/API key and proxy snippet."""
+    template = _jinja_env.get_template("setup.html")
+    return HTMLResponse(content=template.render(request=request))
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -139,12 +147,22 @@ async def dashboard(request: Request):
             "severity": "success",
         })
 
+    projects = []
+    for project in project_store.list_projects():
+        project_dict = project_to_dict(project)
+        project_dict["api_keys"] = project_store.list_api_keys(project.id)
+        project_dict["usage"] = project_store.usage(project.id)
+        projects.append(project_dict)
+
     template = _jinja_env.get_template("dashboard.html")
     html = template.render(
         daily_spend=get_daily_spend(),
         budget=budget_config["daily_budget"],
         budget_mode=budget_config["mode"],
         per_request_max=budget_config["per_request_max"],
+        projects=projects,
+        project_count=len(projects),
+        admin_auth_enabled=bool(settings.tokenwatch_admin_key),
         projected_monthly=forecast.projected_monthly_spend,
         projected_yearly=forecast.projected_yearly_spend,
         budget_utilization=forecast.budget_utilization_pct,

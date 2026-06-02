@@ -133,8 +133,50 @@
         .empty { color: var(--muted); text-align: center; padding: 2rem; font-style: italic; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         .truncate { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .action-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+        .btn, button { font: inherit; }
+        .btn {
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.72);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 0.48rem 0.78rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            font-size: 0.82rem;
+        }
+        .btn.primary { background: linear-gradient(135deg, var(--accent), var(--purple)); color: #06111f; border: 0; font-weight: 800; }
+        .btn:hover { border-color: rgba(56, 189, 248, 0.5); }
+        .form-grid { display: grid; grid-template-columns: 1fr 0.75fr 1fr auto; gap: 0.7rem; align-items: end; margin: 0.8rem 0 1rem; }
+        label { display: block; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem; }
+        input {
+            width: 100%; padding: 0.65rem 0.75rem; border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(2, 6, 23, 0.62); color: var(--text); outline: none;
+        }
+        input:focus { border-color: rgba(56, 189, 248, 0.65); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1); }
+        .key-panel {
+            margin-top: 0.9rem; padding: 0.9rem; border: 1px dashed rgba(56, 189, 248, 0.36);
+            border-radius: 14px; background: rgba(2, 6, 23, 0.42); display: none;
+        }
+        .key-panel.show { display: block; }
+        pre {
+            white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+            background: rgba(2, 6, 23, 0.76); border: 1px solid var(--border);
+            border-radius: 14px; padding: 0.85rem; color: #bae6fd; line-height: 1.5; font-size: 0.82rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .notice { color: #fde68a; font-size: 0.86rem; margin: 0.55rem 0; }
+        .status-line { min-height: 1.25rem; color: var(--muted); font-size: 0.88rem; margin-top: 0.35rem; }
+        .status-line.ok { color: #86efac; }
+        .status-line.err { color: #fca5a5; }
         @media (max-width: 1100px) {
             .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
+            .form-grid { grid-template-columns: 1fr; }
             .header { align-items: flex-start; flex-direction: column; }
             .pill-row { justify-content: flex-start; }
         }
@@ -151,6 +193,9 @@
             </div>
         </div>
         <div class="pill-row">
+            <a class="btn primary" href="/setup">Setup wizard</a>
+            <span class="pill">Projects: <strong>{{ project_count }}</strong></span>
+            <span class="pill">Admin auth: <strong>{{ "on" if admin_auth_enabled else "off" }}</strong></span>
             <span class="pill">Budget mode: <strong>{{ budget_mode }}</strong></span>
             <span class="pill">Per request max: <strong>${{ "%.2f"|format(per_request_max) }}</strong></span>
             <span class="pill">Window: <strong>24h</strong></span>
@@ -178,6 +223,75 @@
             <div class="card-label">Cache Hit Rate & Savings</div>
             <div class="card-value green">${{ "%.4f"|format(cost_saved) }}</div>
             <div class="card-detail">{{ tokens_saved }} tokens saved · {{ "%.1f"|format(cache_hit_rate) }}% hit rate · {{ cache_entries }} entries</div>
+        </div>
+    </section>
+
+
+    <section class="grid">
+        <div class="card span-12">
+            <div class="section-title">
+                <span>Projects & API Keys</span>
+                <span class="section-kicker">Create keys, copy proxy setup, and track usage by app</span>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label for="adminKey">Admin key</label>
+                    <input id="adminKey" type="password" placeholder="optional for local demo">
+                </div>
+                <div>
+                    <label for="projectName">Project</label>
+                    <input id="projectName" value="Production App" maxlength="120">
+                </div>
+                <div>
+                    <label for="dailyBudget">Daily budget</label>
+                    <input id="dailyBudget" type="number" min="0" step="0.01" value="25.00">
+                </div>
+                <button class="btn primary" onclick="createProject()">Create project</button>
+            </div>
+            <div id="projectStatus" class="status-line"></div>
+
+            {% if projects %}
+            <table>
+                <thead><tr><th>Project</th><th>Budget</th><th>Usage</th><th>Keys</th><th>Create Key</th></tr></thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td><strong>{{ project.name }}</strong><br><span class="mono card-detail">{{ project.id }}</span></td>
+                        <td>{% if project.daily_budget is not none %}${{ "%.2f"|format(project.daily_budget) }}/day{% else %}<span class="card-detail">none</span>{% endif %}</td>
+                        <td>{{ project.usage.total_requests }} req · {{ project.usage.total_tokens }} tokens · ${{ "%.4f"|format(project.usage.total_cost_usd) }}</td>
+                        <td>
+                            {% if project.api_keys %}
+                                {% for key in project.api_keys %}
+                                <div><span class="badge badge-info">{{ key.name }}</span> <span class="mono card-detail">{{ key.id }}</span></div>
+                                {% endfor %}
+                            {% else %}
+                                <span class="card-detail">No keys yet</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-row">
+                                <input id="keyName-{{ project.id }}" value="server-key" style="min-width: 150px;">
+                                <button class="btn" onclick="createKey('{{ project.id }}', '{{ project.name }}')">Generate</button>
+                                <button class="btn" onclick="copySnippetForProject('{{ project.id }}')">Copy snippet</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty">No projects yet. Create one here or use the setup wizard.</p>
+            {% endif %}
+            <div id="keyPanel" class="key-panel">
+                <div class="notice">Save this key now. Raw TokenWatch project keys are only shown once.</div>
+                <pre id="keyOutput"></pre>
+                <div class="action-row" style="margin-top: 0.75rem;">
+                    <button class="btn" onclick="copyLatestKey()">Copy key</button>
+                    <button class="btn" onclick="copyLatestSnippet()">Copy setup snippet</button>
+                </div>
+                <label style="margin-top: 0.9rem;">OpenAI Python snippet</label>
+                <pre id="snippetOutput"></pre>
+            </div>
         </div>
     </section>
 
@@ -309,5 +423,109 @@
         </div>
     </section>
 </div>
+
+<script>
+const origin = window.location.origin;
+let latestKey = '';
+let latestSnippet = '';
+const adminInput = document.getElementById('adminKey');
+if (adminInput) {
+    adminInput.value = localStorage.getItem('tokenwatch_admin_key') || '';
+    adminInput.addEventListener('input', () => localStorage.setItem('tokenwatch_admin_key', adminInput.value));
+}
+function adminHeaders() {
+    const h = {'Content-Type': 'application/json'};
+    const key = (document.getElementById('adminKey')?.value || '').trim();
+    if (key) h['X-TokenWatch-Admin-Key'] = key;
+    return h;
+}
+function statusLine(text, cls='') {
+    const el = document.getElementById('projectStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.className = `status-line ${cls}`;
+}
+async function errorText(response) {
+    try {
+        const data = await response.json();
+        return data.detail?.message || data.detail?.error || data.detail || JSON.stringify(data);
+    } catch (_) {
+        return `${response.status} ${response.statusText}`;
+    }
+}
+async function createProject() {
+    try {
+        statusLine('Creating project…');
+        const name = document.getElementById('projectName').value.trim() || 'Production App';
+        const budgetRaw = document.getElementById('dailyBudget').value;
+        const payload = {name};
+        if (budgetRaw !== '') payload.daily_budget = Number(budgetRaw);
+        const res = await fetch('/api/v1/projects', {method: 'POST', headers: adminHeaders(), body: JSON.stringify(payload)});
+        if (!res.ok) throw new Error(await errorText(res));
+        statusLine('Project created. Refreshing…', 'ok');
+        window.location.reload();
+    } catch (err) {
+        statusLine(err.message, 'err');
+    }
+}
+async function createKey(projectId, projectName) {
+    try {
+        statusLine('Generating project key…');
+        const input = document.getElementById(`keyName-${projectId}`);
+        const name = input?.value?.trim() || 'server-key';
+        const res = await fetch(`/api/v1/projects/${projectId}/keys`, {method: 'POST', headers: adminHeaders(), body: JSON.stringify({name})});
+        if (!res.ok) throw new Error(await errorText(res));
+        const key = await res.json();
+        latestKey = key.api_key;
+        latestSnippet = buildSnippet(latestKey);
+        document.getElementById('keyOutput').textContent = `Project: ${projectName} (${projectId})
+Key: ${latestKey}
+Proxy base URL: ${origin}/v1`;
+        document.getElementById('snippetOutput').textContent = latestSnippet;
+        document.getElementById('keyPanel').classList.add('show');
+        statusLine('Key generated. Save it now — it will not be shown again after refresh.', 'ok');
+    } catch (err) {
+        statusLine(err.message, 'err');
+    }
+}
+function buildSnippet(tokenwatchKey) {
+    return `from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_OPENAI_API_KEY",
+    base_url="${origin}/v1",
+    default_headers={"X-TokenWatch-Key": "${tokenwatchKey}"},
+)
+
+response = client.chat.completions.create(
+    model="gpt-5-mini",
+    messages=[{"role": "user", "content": "Hello through TokenWatch"}],
+)
+print(response.choices[0].message.content)`;
+}
+async function copyLatestKey() {
+    if (!latestKey) return statusLine('Generate a key first.', 'err');
+    await navigator.clipboard.writeText(latestKey);
+    statusLine('Copied project key.', 'ok');
+}
+async function copyLatestSnippet() {
+    if (!latestSnippet) return statusLine('Generate a key first so the snippet includes the real key.', 'err');
+    await navigator.clipboard.writeText(latestSnippet);
+    statusLine('Copied setup snippet.', 'ok');
+}
+async function copySnippetForProject(projectId) {
+    const snippet = `from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_OPENAI_API_KEY",
+    base_url="${origin}/v1",
+    default_headers={"X-TokenWatch-Key": "PASTE_PROJECT_KEY_FOR_${projectId}"},
+)
+
+# Generate a key in the dashboard, then replace the placeholder above.`;
+    await navigator.clipboard.writeText(snippet);
+    statusLine('Copied placeholder snippet. Generate a key to get the real secret.', 'ok');
+}
+</script>
 </body>
 </html>

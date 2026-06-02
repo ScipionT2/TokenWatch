@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TokenWatch — Setup</title>
+    <style>
+        :root {
+            --bg: #070b14;
+            --panel: rgba(15, 23, 42, 0.88);
+            --card: rgba(30, 41, 59, 0.72);
+            --border: rgba(148, 163, 184, 0.22);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --purple: #a78bfa;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --red: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 34rem),
+                radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.16), transparent 30rem),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .shell { max-width: 1120px; margin: 0 auto; }
+        .top { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 2rem; }
+        .brand { display: flex; align-items: center; gap: 0.8rem; }
+        .brand-icon { font-size: 2rem; }
+        h1 { font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -0.06em; line-height: 0.96; margin-bottom: 0.8rem; }
+        .subtitle { color: var(--muted); font-size: 1.05rem; max-width: 720px; line-height: 1.6; }
+        .hero { margin-bottom: 1.25rem; }
+        .nav-link, button, input { font: inherit; }
+        .nav-link {
+            color: var(--text); text-decoration: none; border: 1px solid var(--border);
+            border-radius: 999px; padding: 0.55rem 0.85rem; background: rgba(15,23,42,0.65);
+        }
+        .grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 1rem; align-items: start; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 1.35rem;
+            box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+            backdrop-filter: blur(18px);
+        }
+        .step { display: flex; gap: 0.85rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+        .step:last-child { border-bottom: none; }
+        .num {
+            flex: 0 0 2rem; width: 2rem; height: 2rem; display: grid; place-items: center;
+            border-radius: 999px; background: linear-gradient(135deg, var(--accent), var(--purple));
+            color: #06111f; font-weight: 900;
+        }
+        .step h3 { margin-bottom: 0.25rem; }
+        .muted { color: var(--muted); line-height: 1.5; font-size: 0.94rem; }
+        label { display: block; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0.95rem 0 0.4rem; }
+        input {
+            width: 100%; padding: 0.85rem 0.95rem; border-radius: 14px; border: 1px solid var(--border);
+            background: rgba(2, 6, 23, 0.62); color: var(--text); outline: none;
+        }
+        input:focus { border-color: rgba(56, 189, 248, 0.65); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
+        .row { display: grid; grid-template-columns: 1fr 0.7fr; gap: 0.8rem; }
+        .btn {
+            margin-top: 1rem; width: 100%; border: 0; cursor: pointer; border-radius: 14px;
+            padding: 0.9rem 1rem; color: #06111f; font-weight: 900;
+            background: linear-gradient(135deg, var(--accent), var(--green));
+        }
+        .btn.secondary { color: var(--text); border: 1px solid var(--border); background: rgba(15, 23, 42, 0.78); }
+        .status { margin-top: 0.8rem; color: var(--muted); min-height: 1.4rem; }
+        .status.ok { color: #86efac; }
+        .status.err { color: #fca5a5; }
+        .result { display: none; margin-top: 1rem; }
+        .result.show { display: block; }
+        pre {
+            white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+            background: rgba(2, 6, 23, 0.76); border: 1px solid var(--border);
+            border-radius: 16px; padding: 1rem; color: #bae6fd; line-height: 1.5;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.86rem;
+        }
+        .copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem; }
+        .warning { color: #fde68a; font-size: 0.9rem; margin: 0.8rem 0; }
+        @media (max-width: 900px) { .grid, .row, .copy-grid { grid-template-columns: 1fr; } .top { align-items: flex-start; flex-direction: column; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="top">
+        <div class="brand"><span class="brand-icon">👁️</span><strong>TokenWatch</strong></div>
+        <a class="nav-link" href="/dashboard">Open dashboard →</a>
+    </div>
+
+    <section class="hero">
+        <h1>Connect your first app in under a minute.</h1>
+        <p class="subtitle">Create a project, generate a TokenWatch project key, then point any OpenAI-compatible client at this proxy. TokenWatch starts tracking spend, cache hits, budget decisions, and model recommendations immediately.</p>
+    </section>
+
+    <section class="grid">
+        <div class="card">
+            <div class="step"><div class="num">1</div><div><h3>Create a project</h3><p class="muted">Group spend by app, client, environment, or customer.</p></div></div>
+            <div class="step"><div class="num">2</div><div><h3>Generate a project key</h3><p class="muted">Use <code>X-TokenWatch-Key</code> to tag proxy requests. Raw keys are shown once.</p></div></div>
+            <div class="step"><div class="num">3</div><div><h3>Swap your base URL</h3><p class="muted">Keep your OpenAI API key on the TokenWatch server, then route app traffic through <code>/v1</code>.</p></div></div>
+        </div>
+
+        <div class="card">
+            <h2>Setup wizard</h2>
+            <p class="muted">If admin protection is enabled, paste your admin key. It is only kept in this browser tab/localStorage for UI calls.</p>
+            <label for="adminKey">Admin key <span class="muted">optional for local demo</span></label>
+            <input id="adminKey" type="password" placeholder="X-TokenWatch-Admin-Key">
+            <div class="row">
+                <div>
+                    <label for="projectName">Project name</label>
+                    <input id="projectName" value="Production App" maxlength="120">
+                </div>
+                <div>
+                    <label for="dailyBudget">Daily budget</label>
+                    <input id="dailyBudget" type="number" min="0" step="0.01" value="25.00">
+                </div>
+            </div>
+            <label for="keyName">Key name</label>
+            <input id="keyName" value="server-key" maxlength="120">
+            <button class="btn" onclick="runSetup()">Create project + key</button>
+            <div id="status" class="status"></div>
+
+            <div id="result" class="result">
+                <p class="warning">Save this key now. TokenWatch will never show the raw secret again.</p>
+                <pre id="keyBlock"></pre>
+                <div class="copy-grid">
+                    <button class="btn secondary" onclick="copyKey()">Copy key</button>
+                    <button class="btn secondary" onclick="copySnippet()">Copy setup snippet</button>
+                </div>
+                <label>OpenAI Python snippet</label>
+                <pre id="snippetBlock"></pre>
+            </div>
+        </div>
+    </section>
+</div>
+<script>
+const origin = window.location.origin;
+let latestKey = '';
+let latestSnippet = '';
+
+const adminInput = document.getElementById('adminKey');
+adminInput.value = localStorage.getItem('tokenwatch_admin_key') || '';
+adminInput.addEventListener('input', () => localStorage.setItem('tokenwatch_admin_key', adminInput.value));
+
+function headers() {
+    const h = {'Content-Type': 'application/json'};
+    const admin = adminInput.value.trim();
+    if (admin) h['X-TokenWatch-Admin-Key'] = admin;
+    return h;
+}
+function setStatus(text, cls='') {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = `status ${cls}`;
+}
+async function runSetup() {
+    setStatus('Creating project…');
+    document.getElementById('result').classList.remove('show');
+    try {
+        const name = document.getElementById('projectName').value.trim() || 'Production App';
+        const budgetRaw = document.getElementById('dailyBudget').value;
+        const payload = {name};
+        if (budgetRaw !== '') payload.daily_budget = Number(budgetRaw);
+        const projectRes = await fetch('/api/v1/projects', {method: 'POST', headers: headers(), body: JSON.stringify(payload)});
+        if (!projectRes.ok) throw new Error(await errorText(projectRes));
+        const project = await projectRes.json();
+
+        setStatus('Generating project key…');
+        const keyName = document.getElementById('keyName').value.trim() || 'server-key';
+        const keyRes = await fetch(`/api/v1/projects/${project.id}/keys`, {method: 'POST', headers: headers(), body: JSON.stringify({name: keyName})});
+        if (!keyRes.ok) throw new Error(await errorText(keyRes));
+        const key = await keyRes.json();
+        latestKey = key.api_key;
+        latestSnippet = `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_OPENAI_API_KEY",\n    base_url="${origin}/v1",\n    default_headers={"X-TokenWatch-Key": "${key.api_key}"},\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5-mini",\n    messages=[{"role": "user", "content": "Hello through TokenWatch"}],\n)\nprint(response.choices[0].message.content)`;
+        document.getElementById('keyBlock').textContent = `Project: ${project.name} (${project.id})\nKey name: ${key.name}\nTokenWatch key: ${key.api_key}\nProxy base URL: ${origin}/v1`;
+        document.getElementById('snippetBlock').textContent = latestSnippet;
+        document.getElementById('result').classList.add('show');
+        setStatus('Setup complete. Copy the key/snippet and send traffic through TokenWatch.', 'ok');
+    } catch (err) {
+        setStatus(err.message, 'err');
+    }
+}
+async function errorText(response) {
+    try {
+        const data = await response.json();
+        return data.detail?.message || data.detail?.error || data.detail || JSON.stringify(data);
+    } catch (_) {
+        return `${response.status} ${response.statusText}`;
+    }
+}
+async function copyKey() {
+    if (!latestKey) return;
+    await navigator.clipboard.writeText(latestKey);
+    setStatus('Copied project key.', 'ok');
+}
+async function copySnippet() {
+    if (!latestSnippet) return;
+    await navigator.clipboard.writeText(latestSnippet);
+    setStatus('Copied setup snippet.', 'ok');
+}
+</script>
+</body>
+</html>
