@@ -161,6 +161,7 @@ class HealthResponse(BaseModel):
     cache_entries: int = 0
     requests_logged_today: int = 0
     admin_auth_enabled: bool = False
+    demo_mode: bool = False
 
 
 # --- Webhook Configuration ---

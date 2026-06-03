@@ -14,6 +14,7 @@ from src.api.routes import proxy_router, router
 from src.core.alerts import get_alert_history, get_daily_spend
 from src.core.budget import get_budget_config
 from src.core.cache import response_cache
+from src.core.auth import demo_mode_enabled, require_html_admin
 from src.core.recommendations import recommend_model
 from src.models.schemas import TaskType
 from src.services.analytics import get_usage_summary, get_cost_forecast
@@ -75,13 +76,23 @@ _jinja_env = Environment(loader=FileSystemLoader(_templates_dir), autoescape=Tru
 @app.get("/setup", response_class=HTMLResponse)
 async def setup(request: Request):
     """Onboarding flow for creating a first project/API key and proxy snippet."""
+    gate = require_html_admin(request)
+    if gate:
+        return gate
     template = _jinja_env.get_template("setup.html")
-    return HTMLResponse(content=template.render(request=request))
+    return HTMLResponse(content=template.render(
+        request=request,
+        demo_mode=demo_mode_enabled(),
+        admin_auth_enabled=bool(settings.tokenwatch_admin_key),
+    ))
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     """Live dashboard showing spend, budgets, recommendations, requests, and alerts."""
+    gate = require_html_admin(request)
+    if gate:
+        return gate
     cache_stats = response_cache.stats()
     usage = get_usage_summary(hours=24)
     forecast = get_cost_forecast()
@@ -163,6 +174,7 @@ async def dashboard(request: Request):
         projects=projects,
         project_count=len(projects),
         admin_auth_enabled=bool(settings.tokenwatch_admin_key),
+        demo_mode=demo_mode_enabled(),
         projected_monthly=forecast.projected_monthly_spend,
         projected_yearly=forecast.projected_yearly_spend,
         budget_utilization=forecast.budget_utilization_pct,

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     port: int = 8000
     log_level: str = "info"
     tokenwatch_admin_key: str = ""  # optional: protects control-plane admin endpoints
+    tokenwatch_demo_mode: bool = False  # public read-only HTML pages; admin APIs stay protected
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./tokenwatch.db"

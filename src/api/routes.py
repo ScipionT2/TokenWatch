@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from src.models.schemas import (
     HealthResponse,
@@ -32,7 +32,7 @@ from src.core.prompt_optimizer import analyze_prompt, compress_messages
 from src.core.cache import response_cache
 from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
 from src.core.budget import configure_budget, get_budget_config
-from src.core.auth import require_admin_key, admin_auth_enabled
+from src.core.auth import require_admin_key, admin_auth_enabled, demo_mode_enabled, set_admin_session_cookie
 from src.middleware.rate_limiter import rate_limiter
 from src.services.analytics import get_usage_summary, get_cost_forecast
 from src.services.projects import project_store, project_to_dict
@@ -46,6 +46,14 @@ proxy_router = APIRouter()
 
 # --- Health ---
 
+@router.get("/admin/verify")
+async def verify_admin(response: Response, _: bool = Depends(require_admin_key)):
+    """Verify an admin key for browser dashboard/setup unlocks."""
+    if admin_auth_enabled():
+        set_admin_session_cookie(response)
+    return {"status": "ok", "admin": True}
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """System health with cache and request stats."""
@@ -54,6 +62,7 @@ async def health_check():
         cache_entries=cache_stats["entries"],
         requests_logged_today=request_logger.count_today(),
         admin_auth_enabled=admin_auth_enabled(),
+        demo_mode=demo_mode_enabled(),
     )
 
 

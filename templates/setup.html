@@ -124,7 +124,8 @@
             </div>
             <label for="keyName">Key name</label>
             <input id="keyName" value="server-key" maxlength="120">
-            <button class="btn" onclick="runSetup()">Create project + key</button>
+            {% if demo_mode %}<p class="warning">Public demo mode is read-only. Clone TokenWatch or run it locally to create projects and keys.</p>{% endif %}
+            <button class="btn" onclick="runSetup()" {% if demo_mode %}disabled title="Read-only demo mode"{% endif %}>Create project + key</button>
             <div id="status" class="status"></div>
 
             <div id="result" class="result">
@@ -145,6 +146,7 @@ const origin = window.location.origin;
 let latestKey = '';
 let latestSnippet = '';
 
+const demoMode = {{ "true" if demo_mode else "false" }};
 const adminInput = document.getElementById('adminKey');
 adminInput.value = localStorage.getItem('tokenwatch_admin_key') || '';
 adminInput.addEventListener('input', () => localStorage.setItem('tokenwatch_admin_key', adminInput.value));
@@ -161,6 +163,7 @@ function setStatus(text, cls='') {
     el.className = `status ${cls}`;
 }
 async function runSetup() {
+    if (demoMode) { setStatus('Demo mode is read-only. Clone TokenWatch or run locally to create projects.', 'err'); return; }
     setStatus('Creating project…');
     document.getElementById('result').classList.remove('show');
     try {

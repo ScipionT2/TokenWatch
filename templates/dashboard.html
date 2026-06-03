@@ -193,6 +193,7 @@
             </div>
         </div>
         <div class="pill-row">
+            {% if demo_mode %}<span class="pill">Demo: <strong>read-only</strong></span>{% endif %}
             <a class="btn primary" href="/setup">Setup wizard</a>
             <span class="pill">Projects: <strong>{{ project_count }}</strong></span>
             <span class="pill">Admin auth: <strong>{{ "on" if admin_auth_enabled else "off" }}</strong></span>
@@ -246,7 +247,7 @@
                     <label for="dailyBudget">Daily budget</label>
                     <input id="dailyBudget" type="number" min="0" step="0.01" value="25.00">
                 </div>
-                <button class="btn primary" onclick="createProject()">Create project</button>
+                <button class="btn primary" onclick="createProject()" {% if demo_mode %}disabled title="Read-only demo mode"{% endif %}>Create project</button>
             </div>
             <div id="projectStatus" class="status-line"></div>
 
@@ -271,7 +272,7 @@
                         <td>
                             <div class="action-row">
                                 <input id="keyName-{{ project.id }}" value="server-key" style="min-width: 150px;">
-                                <button class="btn" onclick="createKey('{{ project.id }}', '{{ project.name }}')">Generate</button>
+                                <button class="btn" onclick="createKey('{{ project.id }}', '{{ project.name }}')" {% if demo_mode %}disabled title="Read-only demo mode"{% endif %}>Generate</button>
                                 <button class="btn" onclick="copySnippetForProject('{{ project.id }}')">Copy snippet</button>
                             </div>
                         </td>
@@ -428,6 +429,7 @@
 const origin = window.location.origin;
 let latestKey = '';
 let latestSnippet = '';
+const demoMode = {{ "true" if demo_mode else "false" }};
 const adminInput = document.getElementById('adminKey');
 if (adminInput) {
     adminInput.value = localStorage.getItem('tokenwatch_admin_key') || '';
@@ -454,6 +456,7 @@ async function errorText(response) {
     }
 }
 async function createProject() {
+    if (demoMode) { statusLine('Demo mode is read-only. Clone TokenWatch or run locally to create projects.', 'err'); return; }
     try {
         statusLine('Creating project…');
         const name = document.getElementById('projectName').value.trim() || 'Production App';
@@ -469,6 +472,7 @@ async function createProject() {
     }
 }
 async function createKey(projectId, projectName) {
+    if (demoMode) { statusLine('Demo mode is read-only. Clone TokenWatch or run locally to generate keys.', 'err'); return; }
     try {
         statusLine('Generating project key…');
         const input = document.getElementById(`keyName-${projectId}`);
