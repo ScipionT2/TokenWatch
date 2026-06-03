@@ -6,7 +6,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-172%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-173%20passed-brightgreen.svg)]()
 [![CI](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml/badge.svg)](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml)
 
 ## The Problem
@@ -47,7 +47,7 @@ tokenwatch init
 tokenwatch serve
 ```
 
-Server at `http://localhost:8000` — Setup wizard at `/setup` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
+Server at `http://localhost:8000` — Marketing site at `/` — Setup wizard at `/setup` — Dashboard at `/dashboard` — Interactive docs at `/docs`.
 
 For deploys beyond local demo mode, set `TOKENWATCH_ADMIN_KEY` in `.env`. Sensitive admin/control-plane endpoints then require:
 
@@ -88,7 +88,16 @@ For hosted read-only demos, set:
 TOKENWATCH_DEMO_MODE=true
 ```
 
-This keeps `/dashboard` and `/setup` public but disables browser project/key creation buttons. Admin APIs are still protected when `TOKENWATCH_ADMIN_KEY` is set.
+This keeps `/`, `/dashboard`, and `/setup` public but disables browser project/key creation buttons. Admin APIs are still protected when `TOKENWATCH_ADMIN_KEY` is set.
+
+### Production Domain
+
+Recommended professional URL setup:
+
+- Landing page + dashboard: `https://tokenwatch.dev`
+- Optional clean proxy hostname: `https://api.tokenwatch.dev/v1`
+
+See [`DOMAIN.md`](DOMAIN.md) plus `deploy/production.env.example` and `deploy/tokenwatch.example.conf` for DNS, Docker, and Nginx/HTTPS setup.
 
 ### Docker
 
@@ -171,9 +180,10 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 | `GET` | `/api/v1/rate-limit/status` | Current RPM/TPM utilization |
 | `POST` | `/api/v1/rate-limit/check` | Pre-flight rate limit check |
 
-### Dashboard & Onboarding
+### Website, Dashboard & Onboarding
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/` | Professional marketing landing page for TokenWatch |
 | `GET` | `/setup` | Onboarding wizard to create a first project/API key and copy proxy setup snippets |
 | `GET` | `/dashboard` | Live HTML dashboard with spend, budgets, model costs, recommendations, requests, alerts, project usage, and API key management |
 
@@ -307,8 +317,10 @@ tokenwatch/
 │       ├── analytics.py             # Usage aggregation & forecasting over request_logger
 │       └── request_logger.py        # SQLite-backed request log with filtering
 ├── templates/
+│   ├── index.html                   # Professional marketing landing page
+│   ├── setup.html                   # Onboarding wizard
 │   └── dashboard.html               # Live HTML dashboard
-├── tests/                           # 172 tests across the offline suite
+├── tests/                           # 173 tests across the offline suite
 │   ├── test_pricing.py              # 30 tests (incl. Claude/Gemini)
 │   ├── test_token_counter.py        # 10 tests
 │   ├── test_cache.py                # 9 tests

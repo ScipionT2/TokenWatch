@@ -22,16 +22,21 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background:
-                radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32rem),
-                radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 30rem),
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.19), transparent 34rem),
+                radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 32rem),
+                radial-gradient(circle at 50% 90%, rgba(34, 197, 94, 0.08), transparent 34rem),
                 var(--bg);
             color: var(--text);
             min-height: 100vh;
             padding: 2rem;
         }
-        .shell { max-width: 1380px; margin: 0 auto; }
+        .shell { max-width: 1460px; margin: 0 auto; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+        .brand-link { color: var(--text); text-decoration: none; display: inline-flex; gap: 0.55rem; align-items: center; font-weight: 850; }
+        .brand-badge { width: 2rem; height: 2rem; border-radius: 0.7rem; display: grid; place-items: center; color: #06111f; background: linear-gradient(135deg, var(--accent), var(--purple)); }
+        .nav-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
         .header {
             display: flex;
             align-items: center;
@@ -57,7 +62,7 @@
         .card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 18px;
+            border-radius: 22px;
             padding: 1.25rem;
             box-shadow: 0 18px 45px rgba(0,0,0,0.22);
             backdrop-filter: blur(16px);
@@ -76,7 +81,7 @@
             letter-spacing: 0.08em;
             margin-bottom: 0.55rem;
         }
-        .card-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
+        .card-value { font-size: clamp(1.65rem, 3vw, 2.25rem); font-weight: 900; letter-spacing: -0.045em; }
         .green { color: var(--green); }
         .accent { color: var(--accent); }
         .yellow { color: var(--yellow); }
@@ -153,6 +158,12 @@
         .btn.primary { background: linear-gradient(135deg, var(--accent), var(--purple)); color: #06111f; border: 0; font-weight: 800; }
         .btn:hover { border-color: rgba(56, 189, 248, 0.5); }
         .form-grid { display: grid; grid-template-columns: 1fr 0.75fr 1fr auto; gap: 0.7rem; align-items: end; margin: 0.8rem 0 1rem; }
+        .hero-panel { background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(167, 139, 250, 0.13)); border-color: rgba(56, 189, 248, 0.3); }
+        .hero-panel h2 { font-size: clamp(1.75rem, 3vw, 2.65rem); line-height: 1; letter-spacing: -0.055em; margin-bottom: 0.6rem; }
+        .hero-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1rem; }
+        .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+        .quick-item { border: 1px solid var(--border); border-radius: 16px; padding: 0.85rem; background: rgba(2, 6, 23, 0.36); }
+        .quick-item strong { display: block; margin-bottom: 0.2rem; }
         label { display: block; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem; }
         input {
             width: 100%; padding: 0.65rem 0.75rem; border-radius: 12px; border: 1px solid var(--border);
@@ -179,11 +190,22 @@
             .form-grid { grid-template-columns: 1fr; }
             .header { align-items: flex-start; flex-direction: column; }
             .pill-row { justify-content: flex-start; }
+            .quick-grid { grid-template-columns: 1fr; }
+            .top-nav { align-items: flex-start; flex-direction: column; }
+            .nav-actions { justify-content: flex-start; }
         }
     </style>
 </head>
 <body>
 <div class="shell">
+    <nav class="top-nav">
+        <a class="brand-link" href="/"><span class="brand-badge">👁️</span><span>TokenWatch</span></a>
+        <div class="nav-actions">
+            <a class="btn" href="/">Marketing site</a>
+            <a class="btn" href="/docs">API docs</a>
+            <a class="btn primary" href="/setup">Setup wizard</a>
+        </div>
+    </nav>
     <header class="header">
         <div class="brand">
             <span class="brand-icon">👁️</span>
@@ -194,7 +216,6 @@
         </div>
         <div class="pill-row">
             {% if demo_mode %}<span class="pill">Demo: <strong>read-only</strong></span>{% endif %}
-            <a class="btn primary" href="/setup">Setup wizard</a>
             <span class="pill">Projects: <strong>{{ project_count }}</strong></span>
             <span class="pill">Admin auth: <strong>{{ "on" if admin_auth_enabled else "off" }}</strong></span>
             <span class="pill">Budget mode: <strong>{{ budget_mode }}</strong></span>
@@ -229,6 +250,18 @@
 
 
     <section class="grid">
+        <div class="card hero-panel span-12">
+            <h2>Connect apps, watch spend, and stop runaway token costs.</h2>
+            <p class="card-detail">Use TokenWatch as an OpenAI-compatible gateway: route traffic through <span class="mono">/v1</span>, tag it with project keys, then monitor budget pressure, cache savings, model routing opportunities, and client/app usage in one place.</p>
+            <div class="hero-actions">
+                <a class="btn primary" href="/setup">Create project key</a>
+                <a class="btn" href="/docs">Open API docs</a>
+                <button class="btn" onclick="copyBaseUrl()">Copy proxy base URL</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid">
         <div class="card span-12">
             <div class="section-title">
                 <span>Projects & API Keys</span>
@@ -250,6 +283,11 @@
                 <button class="btn primary" onclick="createProject()" {% if demo_mode %}disabled title="Read-only demo mode"{% endif %}>Create project</button>
             </div>
             <div id="projectStatus" class="status-line"></div>
+            <div class="quick-grid" style="margin-bottom: 1rem;">
+                <div class="quick-item"><strong>Proxy base</strong><span class="mono card-detail">{{ request.url.scheme }}://{{ request.url.netloc }}/v1</span></div>
+                <div class="quick-item"><strong>Project header</strong><span class="mono card-detail">X-TokenWatch-Key</span></div>
+                <div class="quick-item"><strong>Admin header</strong><span class="mono card-detail">X-TokenWatch-Admin-Key</span></div>
+            </div>
 
             {% if projects %}
             <table>
@@ -516,6 +554,10 @@ async function copyLatestSnippet() {
     if (!latestSnippet) return statusLine('Generate a key first so the snippet includes the real key.', 'err');
     await navigator.clipboard.writeText(latestSnippet);
     statusLine('Copied setup snippet.', 'ok');
+}
+async function copyBaseUrl() {
+    await navigator.clipboard.writeText(`${origin}/v1`);
+    statusLine('Copied proxy base URL.', 'ok');
 }
 async function copySnippetForProject(projectId) {
     const snippet = `from openai import OpenAI

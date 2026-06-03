@@ -31,6 +31,7 @@
         }
         .shell { max-width: 1120px; margin: 0 auto; }
         .top { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 2rem; }
+        .top-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; justify-content: flex-end; }
         .brand { display: flex; align-items: center; gap: 0.8rem; }
         .brand-icon { font-size: 2rem; }
         h1 { font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -0.06em; line-height: 0.96; margin-bottom: 0.8rem; }
@@ -92,7 +93,10 @@
 <div class="shell">
     <div class="top">
         <div class="brand"><span class="brand-icon">👁️</span><strong>TokenWatch</strong></div>
-        <a class="nav-link" href="/dashboard">Open dashboard →</a>
+        <div class="top-actions">
+            <a class="nav-link" href="/">Home</a>
+            <a class="nav-link" href="/dashboard">Open dashboard →</a>
+        </div>
     </div>
 
     <section class="hero">

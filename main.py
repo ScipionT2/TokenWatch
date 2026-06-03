@@ -73,6 +73,13 @@ _templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templ
 _jinja_env = Environment(loader=FileSystemLoader(_templates_dir), autoescape=True)
 
 
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    """Professional marketing site for TokenWatch."""
+    template = _jinja_env.get_template("index.html")
+    return HTMLResponse(content=template.render())
+
+
 @app.get("/setup", response_class=HTMLResponse)
 async def setup(request: Request):
     """Onboarding flow for creating a first project/API key and proxy snippet."""
@@ -167,6 +174,7 @@ async def dashboard(request: Request):
 
     template = _jinja_env.get_template("dashboard.html")
     html = template.render(
+        request=request,
         daily_spend=get_daily_spend(),
         budget=budget_config["daily_budget"],
         budget_mode=budget_config["mode"],
