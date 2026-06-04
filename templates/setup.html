@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TokenWatch — Setup</title>
+    <title>Token-Tracker — Setup</title>
     <style>
         :root {
             --bg: #070b14;
@@ -92,7 +92,7 @@
 <body>
 <div class="shell">
     <div class="top">
-        <div class="brand"><span class="brand-icon">👁️</span><strong>TokenWatch</strong></div>
+        <div class="brand"><span class="brand-icon">👁️</span><strong>Token-Tracker</strong></div>
         <div class="top-actions">
             <a class="nav-link" href="/">Home</a>
             <a class="nav-link" href="/dashboard">Open dashboard →</a>
@@ -101,21 +101,21 @@
 
     <section class="hero">
         <h1>Connect your first app in under a minute.</h1>
-        <p class="subtitle">Create a project, generate a TokenWatch project key, then point any OpenAI-compatible client at this proxy. TokenWatch starts tracking spend, cache hits, budget decisions, and model recommendations immediately.</p>
+        <p class="subtitle">Create a project, generate a Token-Tracker project key, then point any OpenAI-compatible client at this proxy. Token-Tracker starts tracking spend, cache hits, budget decisions, and model recommendations immediately.</p>
     </section>
 
     <section class="grid">
         <div class="card">
             <div class="step"><div class="num">1</div><div><h3>Create a project</h3><p class="muted">Group spend by app, client, environment, or customer.</p></div></div>
-            <div class="step"><div class="num">2</div><div><h3>Generate a project key</h3><p class="muted">Use <code>X-TokenWatch-Key</code> to tag proxy requests. Raw keys are shown once.</p></div></div>
-            <div class="step"><div class="num">3</div><div><h3>Swap your base URL</h3><p class="muted">Keep your OpenAI API key on the TokenWatch server, then route app traffic through <code>/v1</code>.</p></div></div>
+            <div class="step"><div class="num">2</div><div><h3>Generate a project key</h3><p class="muted">Use <code>X-Token-Tracker-Key</code> to tag proxy requests. Raw keys are shown once.</p></div></div>
+            <div class="step"><div class="num">3</div><div><h3>Swap your base URL</h3><p class="muted">Keep your OpenAI API key on the Token-Tracker server, then route app traffic through <code>/v1</code>.</p></div></div>
         </div>
 
         <div class="card">
             <h2>Setup wizard</h2>
             <p class="muted">If admin protection is enabled, paste your admin key. It is only kept in this browser tab/localStorage for UI calls.</p>
             <label for="adminKey">Admin key <span class="muted">optional for local demo</span></label>
-            <input id="adminKey" type="password" placeholder="X-TokenWatch-Admin-Key">
+            <input id="adminKey" type="password" placeholder="X-Token-Tracker-Admin-Key">
             <div class="row">
                 <div>
                     <label for="projectName">Project name</label>
@@ -128,12 +128,12 @@
             </div>
             <label for="keyName">Key name</label>
             <input id="keyName" value="server-key" maxlength="120">
-            {% if demo_mode %}<p class="warning">Public demo mode is read-only. Clone TokenWatch or run it locally to create projects and keys.</p>{% endif %}
+            {% if demo_mode %}<p class="warning">Public demo mode is read-only. Clone Token-Tracker or run it locally to create projects and keys.</p>{% endif %}
             <button class="btn" onclick="runSetup()" {% if demo_mode %}disabled title="Read-only demo mode"{% endif %}>Create project + key</button>
             <div id="status" class="status"></div>
 
             <div id="result" class="result">
-                <p class="warning">Save this key now. TokenWatch will never show the raw secret again.</p>
+                <p class="warning">Save this key now. Token-Tracker will never show the raw secret again.</p>
                 <pre id="keyBlock"></pre>
                 <div class="copy-grid">
                     <button class="btn secondary" onclick="copyKey()">Copy key</button>
@@ -158,7 +158,7 @@ adminInput.addEventListener('input', () => localStorage.setItem('tokenwatch_admi
 function headers() {
     const h = {'Content-Type': 'application/json'};
     const admin = adminInput.value.trim();
-    if (admin) h['X-TokenWatch-Admin-Key'] = admin;
+    if (admin) h['X-Token-Tracker-Admin-Key'] = admin;
     return h;
 }
 function setStatus(text, cls='') {
@@ -167,7 +167,7 @@ function setStatus(text, cls='') {
     el.className = `status ${cls}`;
 }
 async function runSetup() {
-    if (demoMode) { setStatus('Demo mode is read-only. Clone TokenWatch or run locally to create projects.', 'err'); return; }
+    if (demoMode) { setStatus('Demo mode is read-only. Clone Token-Tracker or run locally to create projects.', 'err'); return; }
     setStatus('Creating project…');
     document.getElementById('result').classList.remove('show');
     try {
@@ -185,11 +185,11 @@ async function runSetup() {
         if (!keyRes.ok) throw new Error(await errorText(keyRes));
         const key = await keyRes.json();
         latestKey = key.api_key;
-        latestSnippet = `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_OPENAI_API_KEY",\n    base_url="${origin}/v1",\n    default_headers={"X-TokenWatch-Key": "${key.api_key}"},\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5-mini",\n    messages=[{"role": "user", "content": "Hello through TokenWatch"}],\n)\nprint(response.choices[0].message.content)`;
-        document.getElementById('keyBlock').textContent = `Project: ${project.name} (${project.id})\nKey name: ${key.name}\nTokenWatch key: ${key.api_key}\nProxy base URL: ${origin}/v1`;
+        latestSnippet = `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_OPENAI_API_KEY",\n    base_url="${origin}/v1",\n    default_headers={"X-Token-Tracker-Key": "${key.api_key}"},\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5-mini",\n    messages=[{"role": "user", "content": "Hello through Token-Tracker"}],\n)\nprint(response.choices[0].message.content)`;
+        document.getElementById('keyBlock').textContent = `Project: ${project.name} (${project.id})\nKey name: ${key.name}\nToken-Tracker key: ${key.api_key}\nProxy base URL: ${origin}/v1`;
         document.getElementById('snippetBlock').textContent = latestSnippet;
         document.getElementById('result').classList.add('show');
-        setStatus('Setup complete. Copy the key/snippet and send traffic through TokenWatch.', 'ok');
+        setStatus('Setup complete. Copy the key/snippet and send traffic through Token-Tracker.', 'ok');
     } catch (err) {
         setStatus(err.message, 'err');
     }

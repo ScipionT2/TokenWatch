@@ -1,4 +1,4 @@
-"""TokenWatch CLI tests."""
+"""Token-Tracker CLI tests."""
 
 from pathlib import Path
 
@@ -10,6 +10,7 @@ class TestCLI:
         parser = cli.build_parser()
         assert parser.parse_args(["init"]).command == "init"
         assert parser.parse_args(["status"]).command == "status"
+        assert parser.parse_args(["preflight"]).command == "preflight"
         args = parser.parse_args(["serve", "--host", "127.0.0.1", "--port", "9000", "--reload"])
         assert args.command == "serve"
         assert args.host == "127.0.0.1"
@@ -36,9 +37,16 @@ class TestCLI:
 
     def test_status_text_contains_dashboard_and_proxy_status(self):
         text = cli.status_text()
-        assert "TokenWatch status" in text
+        assert "Token-Tracker status" in text
         assert "/dashboard" in text
         assert "OpenAI proxy forwarding" in text
+        assert "Preflight:" in text
+
+    def test_preflight_text_reports_status_and_fixes(self):
+        text = cli.preflight_text()
+        assert "Token-Tracker production preflight" in text
+        assert "Status:" in text
+        assert "admin_key" in text
 
     def test_seed_demo_data_creates_requests_and_project(self):
         msg = cli.seed_demo_data(reset=True)
@@ -53,4 +61,10 @@ class TestCLI:
         code = cli.main(["status"])
         out = capsys.readouterr().out
         assert code == 0
-        assert "TokenWatch status" in out
+        assert "Token-Tracker status" in out
+
+    def test_main_preflight_returns_zero(self, capsys):
+        code = cli.main(["preflight"])
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "production preflight" in out

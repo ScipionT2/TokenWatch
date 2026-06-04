@@ -162,6 +162,7 @@ class HealthResponse(BaseModel):
     requests_logged_today: int = 0
     admin_auth_enabled: bool = False
     demo_mode: bool = False
+    preflight_status: str = "unknown"
 
 
 # --- Webhook Configuration ---
@@ -176,7 +177,7 @@ class WebhookConfig(BaseModel):
 # --- Projects ---
 
 class ProjectCreate(BaseModel):
-    """Create a project for grouping TokenWatch usage."""
+    """Create a project for grouping Token-Tracker usage."""
     name: str = Field(..., min_length=1, max_length=120)
     daily_budget: Optional[float] = Field(None, ge=0)
 

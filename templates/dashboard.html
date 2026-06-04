@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TokenWatch — Dashboard</title>
+    <title>Token-Tracker — Dashboard</title>
     <style>
         :root {
             --bg: #070b14;
@@ -199,7 +199,7 @@
 <body>
 <div class="shell">
     <nav class="top-nav">
-        <a class="brand-link" href="/"><span class="brand-badge">👁️</span><span>TokenWatch</span></a>
+        <a class="brand-link" href="/"><span class="brand-badge">👁️</span><span>Token-Tracker</span></a>
         <div class="nav-actions">
             <a class="btn" href="/">Marketing site</a>
             <a class="btn" href="/docs">API docs</a>
@@ -210,7 +210,7 @@
         <div class="brand">
             <span class="brand-icon">👁️</span>
             <div>
-                <h1>TokenWatch</h1>
+                <h1>Token-Tracker</h1>
                 <p class="subtitle">Real-time AI API spend control, proxy monitoring, and optimization.</p>
             </div>
         </div>
@@ -252,7 +252,7 @@
     <section class="grid">
         <div class="card hero-panel span-12">
             <h2>Connect apps, watch spend, and stop runaway token costs.</h2>
-            <p class="card-detail">Use TokenWatch as an OpenAI-compatible gateway: route traffic through <span class="mono">/v1</span>, tag it with project keys, then monitor budget pressure, cache savings, model routing opportunities, and client/app usage in one place.</p>
+            <p class="card-detail">Use Token-Tracker as an OpenAI-compatible gateway: route traffic through <span class="mono">/v1</span>, tag it with project keys, then monitor budget pressure, cache savings, model routing opportunities, and client/app usage in one place.</p>
             <div class="hero-actions">
                 <a class="btn primary" href="/setup">Create project key</a>
                 <a class="btn" href="/docs">Open API docs</a>
@@ -285,8 +285,8 @@
             <div id="projectStatus" class="status-line"></div>
             <div class="quick-grid" style="margin-bottom: 1rem;">
                 <div class="quick-item"><strong>Proxy base</strong><span class="mono card-detail">{{ request.url.scheme }}://{{ request.url.netloc }}/v1</span></div>
-                <div class="quick-item"><strong>Project header</strong><span class="mono card-detail">X-TokenWatch-Key</span></div>
-                <div class="quick-item"><strong>Admin header</strong><span class="mono card-detail">X-TokenWatch-Admin-Key</span></div>
+                <div class="quick-item"><strong>Project header</strong><span class="mono card-detail">X-Token-Tracker-Key</span></div>
+                <div class="quick-item"><strong>Admin header</strong><span class="mono card-detail">X-Token-Tracker-Admin-Key</span></div>
             </div>
 
             {% if projects %}
@@ -322,7 +322,7 @@
             <p class="empty">No projects yet. Create one here or use the setup wizard.</p>
             {% endif %}
             <div id="keyPanel" class="key-panel">
-                <div class="notice">Save this key now. Raw TokenWatch project keys are only shown once.</div>
+                <div class="notice">Save this key now. Raw Token-Tracker project keys are only shown once.</div>
                 <pre id="keyOutput"></pre>
                 <div class="action-row" style="margin-top: 0.75rem;">
                     <button class="btn" onclick="copyLatestKey()">Copy key</button>
@@ -386,7 +386,7 @@
                 </tbody>
             </table>
             {% else %}
-            <p class="empty">No model spend yet. Send traffic through TokenWatch to populate this view.</p>
+            <p class="empty">No model spend yet. Send traffic through Token-Tracker to populate this view.</p>
             {% endif %}
         </div>
 
@@ -476,7 +476,7 @@ if (adminInput) {
 function adminHeaders() {
     const h = {'Content-Type': 'application/json'};
     const key = (document.getElementById('adminKey')?.value || '').trim();
-    if (key) h['X-TokenWatch-Admin-Key'] = key;
+    if (key) h['X-Token-Tracker-Admin-Key'] = key;
     return h;
 }
 function statusLine(text, cls='') {
@@ -494,7 +494,7 @@ async function errorText(response) {
     }
 }
 async function createProject() {
-    if (demoMode) { statusLine('Demo mode is read-only. Clone TokenWatch or run locally to create projects.', 'err'); return; }
+    if (demoMode) { statusLine('Demo mode is read-only. Clone Token-Tracker or run locally to create projects.', 'err'); return; }
     try {
         statusLine('Creating project…');
         const name = document.getElementById('projectName').value.trim() || 'Production App';
@@ -510,7 +510,7 @@ async function createProject() {
     }
 }
 async function createKey(projectId, projectName) {
-    if (demoMode) { statusLine('Demo mode is read-only. Clone TokenWatch or run locally to generate keys.', 'err'); return; }
+    if (demoMode) { statusLine('Demo mode is read-only. Clone Token-Tracker or run locally to generate keys.', 'err'); return; }
     try {
         statusLine('Generating project key…');
         const input = document.getElementById(`keyName-${projectId}`);
@@ -536,12 +536,12 @@ function buildSnippet(tokenwatchKey) {
 client = OpenAI(
     api_key="YOUR_OPENAI_API_KEY",
     base_url="${origin}/v1",
-    default_headers={"X-TokenWatch-Key": "${tokenwatchKey}"},
+    default_headers={"X-Token-Tracker-Key": "${tokenwatchKey}"},
 )
 
 response = client.chat.completions.create(
     model="gpt-5-mini",
-    messages=[{"role": "user", "content": "Hello through TokenWatch"}],
+    messages=[{"role": "user", "content": "Hello through Token-Tracker"}],
 )
 print(response.choices[0].message.content)`;
 }
@@ -565,7 +565,7 @@ async function copySnippetForProject(projectId) {
 client = OpenAI(
     api_key="YOUR_OPENAI_API_KEY",
     base_url="${origin}/v1",
-    default_headers={"X-TokenWatch-Key": "PASTE_PROJECT_KEY_FOR_${projectId}"},
+    default_headers={"X-Token-Tracker-Key": "PASTE_PROJECT_KEY_FOR_${projectId}"},
 )
 
 # Generate a key in the dashboard, then replace the placeholder above.`;

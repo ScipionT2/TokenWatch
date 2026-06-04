@@ -1,6 +1,6 @@
 """Request logging service — persistent record/query of API usage.
 
-SQLite is the default storage layer so TokenWatch keeps usage history across
+SQLite is the default storage layer so Token-Tracker keeps usage history across
 process restarts while still remaining zero-config for local development.
 """
 

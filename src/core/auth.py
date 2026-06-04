@@ -1,4 +1,4 @@
-"""Lightweight admin-key protection for TokenWatch control-plane APIs."""
+"""Lightweight admin-key protection for Token-Tracker control-plane APIs."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from config import settings
 
 
-_ADMIN_HEADER = "X-TokenWatch-Admin-Key"
+_ADMIN_HEADER = "X-Token-Tracker-Admin-Key"
 
 
 def admin_auth_enabled() -> bool:
@@ -46,7 +46,7 @@ def admin_session_matches(candidate: str | None) -> bool:
 
 
 def _safe_next_path(next_path: str = "/dashboard") -> str:
-    """Keep browser login redirects relative to this TokenWatch instance."""
+    """Keep browser login redirects relative to this Token-Tracker instance."""
     return next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
 
 
@@ -78,7 +78,7 @@ def admin_gate_page(next_path: str = "/dashboard", message: str = "Admin key req
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TokenWatch — Admin Login</title>
+<title>Token-Tracker — Admin Login</title>
 <style>
 body {{ margin:0; min-height:100vh; display:grid; place-items:center; background:#070b14; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,system-ui,sans-serif; }}
 .card {{ width:min(92vw,460px); background:rgba(15,23,42,.9); border:1px solid rgba(148,163,184,.24); border-radius:22px; padding:1.5rem; box-shadow:0 24px 70px rgba(0,0,0,.32); }}
@@ -92,8 +92,8 @@ button {{ cursor:pointer; border:0; font-weight:800; color:#06111f; background:l
 </head>
 <body>
 <form class="card" onsubmit="login(event)">
-<h1>👁️ TokenWatch</h1>
-<p>{escaped_message}. Paste your <code>X-TokenWatch-Admin-Key</code> to open this page.</p>
+<h1>👁️ Token-Tracker</h1>
+<p>{escaped_message}. Paste your <code>X-Token-Tracker-Admin-Key</code> to open this page.</p>
 <input id="key" type="password" autocomplete="current-password" placeholder="Admin key" autofocus>
 <div id="err" class="err"></div>
 <button>Unlock</button>
@@ -103,7 +103,7 @@ const nextPath = {safe_next!r};
 async function login(e) {{
   e.preventDefault();
   const key = document.getElementById('key').value.trim();
-  const res = await fetch(`/api/v1/admin/verify?next=${{encodeURIComponent(nextPath)}}`, {{headers: {{'X-TokenWatch-Admin-Key': key}}}});
+  const res = await fetch(`/api/v1/admin/verify?next=${{encodeURIComponent(nextPath)}}`, {{headers: {{'X-Token-Tracker-Admin-Key': key}}}});
   if (res.ok) {{
     localStorage.setItem('tokenwatch_admin_key', key);
     window.location.href = nextPath;
@@ -136,7 +136,7 @@ def require_admin_key(
 ) -> bool:
     """Require the configured admin key for sensitive control-plane endpoints.
 
-    TokenWatch stays zero-config for local demos: if TOKENWATCH_ADMIN_KEY is not
+    Token-Tracker stays zero-config for local demos: if TOKENWATCH_ADMIN_KEY is not
     set, routes remain open. In production, setting the env var turns this into a
     constant-time header check for endpoints that mutate/export operational data.
     """
@@ -148,7 +148,7 @@ def require_admin_key(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "error": "admin_key_required",
-                "message": f"Set {_ADMIN_HEADER} to access this TokenWatch admin endpoint.",
+                "message": f"Set {_ADMIN_HEADER} to access this Token-Tracker admin endpoint.",
             },
         )
     return True

@@ -1,6 +1,6 @@
-# AGENTS.md — TokenWatch
+# AGENTS.md — Token-Tracker
 
-TokenWatch is an AI API cost monitoring and control layer. Use **TokenWatch** in all user-facing copy.
+Token-Tracker is an AI API cost monitoring and control layer. Use **Token-Tracker** in all user-facing copy.
 
 ## Product Goal
 

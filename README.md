@@ -1,4 +1,4 @@
-# 👁️ TokenWatch
+# 👁️ Token-Tracker
 
 > Monitor, analyze, and optimize your OpenAI API spend in real-time.  
 > Stop burning tokens. Start understanding where every dollar goes.
@@ -6,8 +6,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-173%20passed-brightgreen.svg)]()
-[![CI](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml/badge.svg)](https://github.com/ScipionT2/TokenWatch/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/badge/tests-177%20passed-brightgreen.svg)]()
+[![CI](https://github.com/ScipionT2/Token-Tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/ScipionT2/Token-Tracker/actions/workflows/tests.yml)
 
 ## The Problem
 
@@ -15,7 +15,7 @@ Enterprise teams spend thousands on OpenAI APIs with zero visibility into where 
 
 ## The Solution
 
-TokenWatch sits between your application and AI providers. It analyzes every request for cost, efficiency, and waste — then gives you the data to fix it.
+Token-Tracker sits between your application and AI providers. It analyzes every request for cost, efficiency, and waste — then gives you the data to fix it.
 
 ### What It Does
 
@@ -29,8 +29,9 @@ TokenWatch sits between your application and AI providers. It analyzes every req
 - **🔌 OpenAI-Compatible Proxy** — Use `/v1/chat/completions`, `/v1/responses`, or `/v1/embeddings` with a base URL swap
 - **📊 SaaS-Style Dashboard** — Spend overview, budget status, model breakdown, recommendations, opportunities, recent requests, and alerts at `/dashboard`
 - **📜 Persistent Request History** — Log every API call to SQLite and query history with model/date filters
-- **🔑 Projects & API Keys** — Group usage by app/client with `X-TokenWatch-Key` project keys
-- **🔐 Optional Admin Protection** — Set `TOKENWATCH_ADMIN_KEY` to lock sensitive control-plane APIs and HTML pages behind `X-TokenWatch-Admin-Key`
+- **🔑 Projects & API Keys** — Group usage by app/client with `X-Token-Tracker-Key` project keys
+- **🔐 Optional Admin Protection** — Set `TOKENWATCH_ADMIN_KEY` to lock sensitive control-plane APIs and HTML pages behind `X-Token-Tracker-Admin-Key`
+- **🧪 Production Preflight** — CLI/API checks for admin key strength, demo mode, CORS, budget mode, API key readiness, and durable storage
 - **📤 Data Export** — Export request history as CSV or JSON for analysis in external tools
 - **💡 Smart Model Recommendations** — Task-aware model swaps with risk, savings, monthly/yearly projections, and reasoning
 - **🐳 Docker Ready** — One-command deployment with Docker Compose
@@ -38,8 +39,8 @@ TokenWatch sits between your application and AI providers. It analyzes every req
 ## Quick Start
 
 ```bash
-git clone https://github.com/ScipionT2/TokenWatch.git
-cd TokenWatch
+git clone https://github.com/ScipionT2/Token-Tracker.git
+cd Token-Tracker
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
@@ -52,7 +53,7 @@ Server at `http://localhost:8000` — Marketing site at `/` — Setup wizard at 
 For deploys beyond local demo mode, set `TOKENWATCH_ADMIN_KEY` in `.env`. Sensitive admin/control-plane endpoints then require:
 
 ```bash
--H "X-TokenWatch-Admin-Key: your-admin-key"
+-H "X-Token-Tracker-Admin-Key: your-admin-key"
 ```
 
 Useful CLI commands:
@@ -80,29 +81,36 @@ Then open:
 http://localhost:8000/dashboard
 ```
 
-Demo mode creates a sample project, a demo `X-TokenWatch-Key`, realistic request history, cache-hit data, model cost breakdowns, duplicate prompt signals, and dashboard optimization opportunities.
+Demo mode creates a sample project, a demo `X-Token-Tracker-Key`, realistic request history, cache-hit data, model cost breakdowns, duplicate prompt signals, and dashboard optimization opportunities.
 
 For hosted read-only demos, set:
 
 ```bash
 TOKENWATCH_DEMO_MODE=true
+TOKENWATCH_SEED_DEMO=true
 ```
 
-This keeps `/`, `/dashboard`, and `/setup` public but disables browser project/key creation buttons. Admin APIs are still protected when `TOKENWATCH_ADMIN_KEY` is set.
+This keeps `/`, `/dashboard`, and `/setup` public but disables browser project/key creation buttons. `TOKENWATCH_SEED_DEMO=true` auto-populates an empty hosted dashboard with realistic demo data. Admin APIs are still protected when `TOKENWATCH_ADMIN_KEY` is set.
 
 ### Production Domain
 
 Recommended professional URL setup:
 
-- Landing page + dashboard: `https://tokenwatch.dev`
-- Optional clean proxy hostname: `https://api.tokenwatch.dev/v1`
+- Landing page + dashboard: `https://token-tracker.dev`
+- Optional clean proxy hostname: `https://api.token-tracker.dev/v1`
 
-See [`DOMAIN.md`](DOMAIN.md) plus `deploy/production.env.example` and `deploy/tokenwatch.example.conf` for DNS, Docker, and Nginx/HTTPS setup.
+See [`DOMAIN.md`](DOMAIN.md), [`deploy/cloud-run.md`](deploy/cloud-run.md), `deploy/production.env.example`, and `deploy/token-tracker.example.conf` for DNS, Docker, Cloud Run, and Nginx/HTTPS setup.
+
+Before exposing a public instance, run:
+
+```bash
+tokenwatch preflight
+```
 
 ### Docker
 
 ```bash
-# Build and run
+# Build and run with a persistent Docker volume
 docker compose up -d
 
 # Or build manually
@@ -110,7 +118,7 @@ docker build -t tokenwatch .
 docker run -p 8000:8000 --env-file .env tokenwatch
 ```
 
-## API Endpoints (33 Total)
+## API Endpoints (36 Total)
 
 ### Cost Intelligence
 | Method | Endpoint | Description |
@@ -144,7 +152,7 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 |--------|----------|-------------|
 | `POST` | `/api/v1/projects` | Create a project/app/client bucket |
 | `GET` | `/api/v1/projects` | List projects |
-| `POST` | `/api/v1/projects/{id}/keys` | Create a project API key for `X-TokenWatch-Key` |
+| `POST` | `/api/v1/projects/{id}/keys` | Create a project API key for `X-Token-Tracker-Key` |
 | `GET` | `/api/v1/projects/{id}/keys` | List key metadata without exposing secrets |
 | `GET` | `/api/v1/projects/{id}/usage` | Project-specific usage summary |
 
@@ -174,7 +182,8 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/admin/verify` | Verify an admin key and set the browser admin session cookie |
-| `GET` | `/api/v1/health` | System health with cache stats, admin auth status, and demo mode status |
+| `GET` | `/api/v1/health` | System health with cache stats, admin auth status, demo mode, and preflight status |
+| `GET` | `/api/v1/preflight` | Production-readiness checks; admin protected when `TOKENWATCH_ADMIN_KEY` is set |
 | `GET` | `/api/v1/cache/stats` | Cache hit rate and savings |
 | `POST` | `/api/v1/cache/clear` | Flush response cache |
 | `GET` | `/api/v1/rate-limit/status` | Current RPM/TPM utilization |
@@ -183,7 +192,7 @@ docker run -p 8000:8000 --env-file .env tokenwatch
 ### Website, Dashboard & Onboarding
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/` | Professional marketing landing page for TokenWatch |
+| `GET` | `/` | Professional marketing landing page for Token-Tracker |
 | `GET` | `/setup` | Onboarding wizard to create a first project/API key and copy proxy setup snippets |
 | `GET` | `/dashboard` | Live HTML dashboard with spend, budgets, model costs, recommendations, requests, alerts, project usage, and API key management |
 
@@ -195,7 +204,7 @@ Open the setup wizard:
 http://localhost:8000/setup
 ```
 
-Create a project, generate a one-time `X-TokenWatch-Key`, then use the generated OpenAI-compatible snippet. The dashboard also includes a **Projects & API Keys** panel for creating projects/keys later and copying proxy snippets.
+Create a project, generate a one-time `X-Token-Tracker-Key`, then use the generated OpenAI-compatible snippet. The dashboard also includes a **Projects & API Keys** panel for creating projects/keys later and copying proxy snippets.
 
 ## Example: Analyze Before You Spend
 
@@ -269,11 +278,11 @@ Then call sensitive endpoints with the admin header:
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects \
   -H "Content-Type: application/json" \
-  -H "X-TokenWatch-Admin-Key: change-this-long-random-secret" \
+  -H "X-Token-Tracker-Admin-Key: change-this-long-random-secret" \
   -d '{"name":"Production App","daily_budget":25}'
 ```
 
-Protected endpoints include project/key creation, manual request logging, cache clearing, export, budget changes, and alert webhook configuration. `/setup` and `/dashboard` also show an admin login gate when `TOKENWATCH_ADMIN_KEY` is set. The OpenAI-compatible proxy still uses project keys via `X-TokenWatch-Key`.
+Protected endpoints include project/key creation, manual request logging, cache clearing, export, budget changes, and alert webhook configuration. `/setup` and `/dashboard` also show an admin login gate when `TOKENWATCH_ADMIN_KEY` is set. The OpenAI-compatible proxy still uses project keys via `X-Token-Tracker-Key`.
 
 For a public hosted demo, add `TOKENWATCH_DEMO_MODE=true`. That makes `/setup` and `/dashboard` visible in read-only mode while admin APIs remain protected.
 
@@ -320,7 +329,7 @@ tokenwatch/
 │   ├── index.html                   # Professional marketing landing page
 │   ├── setup.html                   # Onboarding wizard
 │   └── dashboard.html               # Live HTML dashboard
-├── tests/                           # 173 tests across the offline suite
+├── tests/                           # 177 tests across the offline suite
 │   ├── test_pricing.py              # 30 tests (incl. Claude/Gemini)
 │   ├── test_token_counter.py        # 10 tests
 │   ├── test_cache.py                # 9 tests
@@ -332,6 +341,7 @@ tokenwatch/
 │   ├── test_webhooks.py             # 9 tests
 │   ├── test_request_logger.py       # 16 tests
 │   └── test_export.py              # 13 tests
+├── .dockerignore                    # Keeps secrets/local DBs out of container build context
 ├── .github/
 │   └── workflows/
 │       └── tests.yml                # CI: automated testing on push/PR

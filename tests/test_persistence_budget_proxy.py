@@ -86,7 +86,7 @@ class TestBudgetControlsAndProxy:
         configure_budget("block", daily_budget=0.000001, per_request_max=0.000001)
         r = client.post("/v1/chat/completions", json={
             "model": "gpt-5",
-            "messages": [{"role": "user", "content": "Explain TokenWatch in detail."}],
+            "messages": [{"role": "user", "content": "Explain Token-Tracker in detail."}],
         })
         assert r.status_code == 402
         detail = r.json()["detail"]

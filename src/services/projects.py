@@ -1,4 +1,4 @@
-"""Project and TokenWatch API key management."""
+"""Project and Token-Tracker API key management."""
 
 from __future__ import annotations
 

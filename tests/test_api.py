@@ -15,6 +15,15 @@ class TestHealth:
         data = r.json()
         assert data["status"] == "ok"
         assert data["version"] == "1.0.0"
+        assert data["preflight_status"] in {"pass", "warn", "fail"}
+
+
+    def test_preflight_endpoint_available_without_admin_when_auth_disabled(self):
+        r = client.get("/api/v1/preflight")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["status"] in {"pass", "warn", "fail"}
+        assert "checks" in data
 
 
 class TestPromptAnalysis:

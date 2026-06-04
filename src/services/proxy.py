@@ -1,4 +1,4 @@
-"""OpenAI-compatible proxy service for TokenWatch.
+"""OpenAI-compatible proxy service for Token-Tracker.
 
 Keeps forwarding, budget decisions, cache behavior, rate limits, request
 logging, and provider metadata out of the API route declarations.
@@ -63,7 +63,7 @@ def tokenwatch_metadata(decision, prompt_tokens: int, completion_tokens: int, co
 
 
 def _project_metadata(project_context: dict | None) -> dict:
-    """Metadata to attach to logs when a TokenWatch project API key is used."""
+    """Metadata to attach to logs when a Token-Tracker project API key is used."""
     if not project_context:
         return {}
     return {
@@ -74,7 +74,7 @@ def _project_metadata(project_context: dict | None) -> dict:
 
 
 async def proxy_to_openai(endpoint: str, payload: dict[str, Any], tokenwatch_key: str | None = None):
-    """Forward an OpenAI-compatible request through TokenWatch controls."""
+    """Forward an OpenAI-compatible request through Token-Tracker controls."""
     project_context = None
     if tokenwatch_key:
         project_context = project_store.authenticate(tokenwatch_key)

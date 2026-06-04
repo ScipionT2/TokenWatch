@@ -1,4 +1,4 @@
-"""Budget enforcement controls for TokenWatch proxy requests.
+"""Budget enforcement controls for Token-Tracker proxy requests.
 
 Runtime budget config is persisted in SQLite so enforcement mode survives
 restarts while keeping local setup zero-config.

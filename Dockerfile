@@ -1,13 +1,21 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 # Install dependencies first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && adduser --disabled-password --gecos "" --home /app tokenwatch \
+    && mkdir -p /app/data \
+    && chown -R tokenwatch:tokenwatch /app
 
 # Copy application code
-COPY . .
+COPY --chown=tokenwatch:tokenwatch . .
+
+USER tokenwatch
 
 EXPOSE 8000
 

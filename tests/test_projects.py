@@ -1,4 +1,4 @@
-"""Project and TokenWatch API key tests."""
+"""Project and Token-Tracker API key tests."""
 
 from fastapi.testclient import TestClient
 
@@ -63,7 +63,7 @@ class TestProjects:
     def test_proxy_rejects_invalid_tokenwatch_key(self):
         r = client.post(
             "/v1/chat/completions",
-            headers={"X-TokenWatch-Key": "tw_invalid"},
+            headers={"X-Token-Tracker-Key": "tw_invalid"},
             json={"model": "gpt-5", "messages": [{"role": "user", "content": "hello"}]},
         )
         assert r.status_code == 401
@@ -74,7 +74,7 @@ class TestProjects:
         key = client.post(f"/api/v1/projects/{project['id']}/keys", json={"name": "dev"}).json()["api_key"]
         r = client.post(
             "/v1/chat/completions",
-            headers={"X-TokenWatch-Key": key},
+            headers={"X-Token-Tracker-Key": key},
             json={"model": "gpt-5", "messages": [{"role": "user", "content": "hello"}]},
         )
         assert r.status_code == 503

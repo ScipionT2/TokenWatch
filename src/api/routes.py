@@ -1,4 +1,4 @@
-"""API routes — TokenWatch control plane and OpenAI-compatible proxy."""
+"""API routes — Token-Tracker control plane and OpenAI-compatible proxy."""
 
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ from src.core.cache import response_cache
 from src.core.alerts import check_and_alert, get_alert_history, get_daily_spend, configure_webhook, get_webhook_config
 from src.core.budget import configure_budget, get_budget_config
 from src.core.auth import require_admin_key, admin_auth_enabled, demo_mode_enabled, set_admin_session_cookie
+from src.core.preflight import run_preflight
 from src.middleware.rate_limiter import rate_limiter
 from src.services.analytics import get_usage_summary, get_cost_forecast
 from src.services.projects import project_store, project_to_dict
@@ -63,7 +64,14 @@ async def health_check():
         requests_logged_today=request_logger.count_today(),
         admin_auth_enabled=admin_auth_enabled(),
         demo_mode=demo_mode_enabled(),
+        preflight_status=run_preflight()["status"],
     )
+
+
+@router.get("/preflight")
+async def preflight(_: bool = Depends(require_admin_key)):
+    """Production-readiness checks for deploys and public demos."""
+    return run_preflight()
 
 
 # --- Prompt Analysis ---
@@ -436,16 +444,19 @@ async def project_usage(project_id: str):
 @proxy_router.post("/v1/chat/completions")
 async def proxy_chat_completions(payload: dict[str, Any], request: Request):
     """OpenAI-compatible chat completions proxy."""
-    return await proxy_to_openai("/v1/chat/completions", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))
+    project_key = request.headers.get("x-token-tracker-key") or request.headers.get("x-tokenwatch-key")
+    return await proxy_to_openai("/v1/chat/completions", payload, tokenwatch_key=project_key)
 
 
 @proxy_router.post("/v1/responses")
 async def proxy_responses(payload: dict[str, Any], request: Request):
     """OpenAI-compatible Responses API proxy."""
-    return await proxy_to_openai("/v1/responses", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))
+    project_key = request.headers.get("x-token-tracker-key") or request.headers.get("x-tokenwatch-key")
+    return await proxy_to_openai("/v1/responses", payload, tokenwatch_key=project_key)
 
 
 @proxy_router.post("/v1/embeddings")
 async def proxy_embeddings(payload: dict[str, Any], request: Request):
     """OpenAI-compatible embeddings proxy."""
-    return await proxy_to_openai("/v1/embeddings", payload, tokenwatch_key=request.headers.get("x-tokenwatch-key"))
+    project_key = request.headers.get("x-token-tracker-key") or request.headers.get("x-tokenwatch-key")
+    return await proxy_to_openai("/v1/embeddings", payload, tokenwatch_key=project_key)

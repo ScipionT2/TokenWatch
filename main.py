@@ -1,4 +1,4 @@
-"""TokenWatch — monitor, optimize, and control your AI API spend."""
+"""Token-Tracker — monitor, optimize, and control your AI API spend."""
 
 import logging
 import os
@@ -15,11 +15,13 @@ from src.core.alerts import get_alert_history, get_daily_spend
 from src.core.budget import get_budget_config
 from src.core.cache import response_cache
 from src.core.auth import demo_mode_enabled, require_html_admin
+from src.core.preflight import run_preflight
 from src.core.recommendations import recommend_model
 from src.models.schemas import TaskType
 from src.services.analytics import get_usage_summary, get_cost_forecast
 from src.services.request_logger import request_logger
 from src.services.projects import project_store, project_to_dict
+from src.cli import seed_demo_data
 
 
 logging.basicConfig(
@@ -33,18 +35,28 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
-    logger.info("TokenWatch starting up")
+    logger.info("Token-Tracker starting up")
     logger.info(f"Daily budget: ${settings.alert_daily_budget:.2f}")
     logger.info(f"Rate limits: {settings.rate_limit_rpm} RPM / {settings.rate_limit_tpm} TPM")
     if not settings.openai_api_key:
         logger.warning("OPENAI_API_KEY not set — proxy mode unavailable, analysis tools still work")
+    if settings.tokenwatch_seed_demo:
+        logger.info(seed_demo_data(skip_if_present=True))
+    preflight = run_preflight()
+    logger.info(
+        "Preflight: %s (%s pass, %s warn, %s fail)",
+        preflight["status"],
+        preflight["summary"]["pass"],
+        preflight["summary"]["warn"],
+        preflight["summary"]["fail"],
+    )
     logger.info(f"Server ready on {settings.host}:{settings.port}")
     yield
-    logger.info("TokenWatch shutting down")
+    logger.info("Token-Tracker shutting down")
 
 
 app = FastAPI(
-    title="TokenWatch",
+    title="Token-Tracker",
     description=(
         "Monitor, analyze, and optimize AI API usage. "
         "Pre-request cost estimation, prompt optimization, response caching, "
@@ -58,7 +70,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -75,7 +87,7 @@ _jinja_env = Environment(loader=FileSystemLoader(_templates_dir), autoescape=Tru
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    """Professional marketing site for TokenWatch."""
+    """Professional marketing site for Token-Tracker."""
     template = _jinja_env.get_template("index.html")
     return HTMLResponse(content=template.render())
 
@@ -161,7 +173,7 @@ async def dashboard(request: Request):
     if not opportunities:
         opportunities.append({
             "title": "No major waste detected",
-            "detail": "TokenWatch has not found urgent optimization issues in the current window.",
+            "detail": "Token-Tracker has not found urgent optimization issues in the current window.",
             "severity": "success",
         })
 

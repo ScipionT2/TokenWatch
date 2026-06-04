@@ -1,4 +1,4 @@
-"""Admin-key protection tests for sensitive TokenWatch control-plane endpoints."""
+"""Admin-key protection tests for sensitive Token-Tracker control-plane endpoints."""
 
 from fastapi.testclient import TestClient
 
@@ -40,7 +40,7 @@ class TestAdminAuth:
     def test_sensitive_endpoint_rejects_wrong_admin_key(self):
         r = client.post(
             "/api/v1/projects",
-            headers={"X-TokenWatch-Admin-Key": "wrong"},
+            headers={"X-Token-Tracker-Admin-Key": "wrong"},
             json={"name": "Blocked"},
         )
         assert r.status_code == 401
@@ -49,7 +49,7 @@ class TestAdminAuth:
     def test_sensitive_endpoint_accepts_valid_admin_key(self):
         r = client.post(
             "/api/v1/projects",
-            headers={"X-TokenWatch-Admin-Key": "test-admin-key"},
+            headers={"X-Token-Tracker-Admin-Key": "test-admin-key"},
             json={"name": "Allowed"},
         )
         assert r.status_code == 200
@@ -60,8 +60,15 @@ class TestAdminAuth:
         assert r.status_code == 200
         assert r.json() == []
 
+    def test_preflight_requires_admin_key_when_auth_enabled(self):
+        r = client.get("/api/v1/preflight")
+        assert r.status_code == 401
+        ok = client.get("/api/v1/preflight", headers={"X-Token-Tracker-Admin-Key": "test-admin-key"})
+        assert ok.status_code == 200
+        assert ok.json()["status"] in {"pass", "warn", "fail"}
+
     def test_admin_verify_sets_browser_session_cookie(self):
-        r = client.get("/api/v1/admin/verify", headers={"X-TokenWatch-Admin-Key": "test-admin-key"})
+        r = client.get("/api/v1/admin/verify", headers={"X-Token-Tracker-Admin-Key": "test-admin-key"})
         assert r.status_code == 200
         assert r.json()["admin"] is True
         assert "tokenwatch_admin_session" in r.cookies
@@ -97,7 +104,7 @@ class TestAdminAuth:
 
         r = client.post(
             "/v1/chat/completions",
-            headers={"X-TokenWatch-Key": key},
+            headers={"X-Token-Tracker-Key": key},
             json={"model": "gpt-5", "messages": [{"role": "user", "content": "hello"}]},
         )
         assert r.status_code == 503

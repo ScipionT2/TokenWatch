@@ -13,9 +13,9 @@ class TestDashboard:
         r = client.get("/")
         assert r.status_code == 200
         assert "text/html" in r.headers["content-type"]
-        assert "TokenWatch — AI API spend control" in r.text
+        assert "Token-Tracker — AI API spend control" in r.text
         assert "Stop guessing" in r.text
-        assert "tokenwatch.dev" in r.text
+        assert "token-tracker.dev" in r.text
 
     def test_dashboard_returns_html(self):
         r = client.get("/dashboard")
@@ -24,7 +24,7 @@ class TestDashboard:
 
     def test_dashboard_contains_title(self):
         r = client.get("/dashboard")
-        assert "TokenWatch" in r.text
+        assert "Token-Tracker" in r.text
 
     def test_dashboard_contains_spend_section(self):
         r = client.get("/dashboard")

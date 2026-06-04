@@ -1,4 +1,4 @@
-"""TokenWatch command-line interface.
+"""Token-Tracker command-line interface.
 
 Provides the simple local developer flow:
 
@@ -18,6 +18,7 @@ import uvicorn
 
 from config import settings
 from src.core.budget import configure_budget
+from src.core.preflight import run_preflight
 from src.core.pricing import calculate_cost
 from src.core.token_counter import hash_prompt
 from src.services.projects import project_store
@@ -32,7 +33,7 @@ ENV_FILE = ROOT / ".env"
 def init_env(env_file: Path = ENV_FILE, env_example: Path = ENV_EXAMPLE) -> str:
     """Create a .env from .env.example if it does not already exist."""
     if env_file.exists():
-        return f"TokenWatch already initialized: {env_file}"
+        return f"Token-Tracker already initialized: {env_file}"
     if env_example.exists():
         shutil.copyfile(env_example, env_file)
     else:
@@ -46,14 +47,15 @@ def init_env(env_file: Path = ENV_FILE, env_example: Path = ENV_EXAMPLE) -> str:
             "DATABASE_URL=sqlite+aiosqlite:///./tokenwatch.db\n"
             "BUDGET_MODE=observe\n"
         )
-    return f"TokenWatch initialized: {env_file}"
+    return f"Token-Tracker initialized: {env_file}"
 
 
 def status_text() -> str:
     """Human-readable local configuration status."""
     has_key = bool(settings.openai_api_key)
+    preflight = run_preflight()
     return "\n".join([
-        "TokenWatch status",
+        "Token-Tracker status",
         f"  Server: http://{settings.host}:{settings.port}",
         f"  Dashboard: http://localhost:{settings.port}/dashboard",
         f"  Docs: http://localhost:{settings.port}/docs",
@@ -61,12 +63,30 @@ def status_text() -> str:
         f"  Budget mode: {settings.budget_mode}",
         f"  Admin API protection: {'enabled' if settings.tokenwatch_admin_key else 'disabled'}",
         f"  Demo mode: {'enabled' if settings.tokenwatch_demo_mode else 'disabled'}",
+        f"  CORS origins: {', '.join(settings.cors_origins())}",
         f"  OpenAI proxy forwarding: {'ready' if has_key else 'needs OPENAI_API_KEY'}",
+        f"  Preflight: {preflight['status']} ({preflight['summary']['pass']} pass, {preflight['summary']['warn']} warn, {preflight['summary']['fail']} fail)",
     ])
 
 
+def preflight_text() -> str:
+    """Human-readable production preflight report."""
+    report = run_preflight()
+    lines = [
+        "Token-Tracker production preflight",
+        f"  Status: {report['status']}",
+        f"  Summary: {report['summary']['pass']} pass, {report['summary']['warn']} warn, {report['summary']['fail']} fail",
+    ]
+    for check in report["checks"]:
+        symbol = {"pass": "✅", "warn": "⚠️", "fail": "❌"}[check["level"]]
+        lines.append(f"  {symbol} {check['name']}: {check['message']}")
+        if check["level"] != "pass":
+            lines.append(f"     fix: {check['fix']}")
+    return "\n".join(lines)
+
+
 def serve(host: str | None = None, port: int | None = None, reload: bool = False) -> None:
-    """Start the TokenWatch FastAPI app."""
+    """Start the Token-Tracker FastAPI app."""
     uvicorn.run(
         "main:app",
         host=host or settings.host,
@@ -76,8 +96,10 @@ def serve(host: str | None = None, port: int | None = None, reload: bool = False
     )
 
 
-def seed_demo_data(reset: bool = False) -> str:
+def seed_demo_data(reset: bool = False, skip_if_present: bool = False) -> str:
     """Seed realistic local demo data for dashboard screenshots and demos."""
+    if skip_if_present and (request_logger.count() > 0 or project_store.list_projects()):
+        return "Token-Tracker demo data already present; skipping seed."
     if reset:
         request_logger.clear()
         project_store.clear()
@@ -123,7 +145,7 @@ def seed_demo_data(reset: bool = False) -> str:
         ))
 
     return "\n".join([
-        "TokenWatch demo data seeded.",
+        "Token-Tracker demo data seeded.",
         f"  Project: {project.name} ({project.id})",
         f"  Demo API key: {api_key['api_key']}",
         f"  Requests added: {len(samples)}",
@@ -132,12 +154,12 @@ def seed_demo_data(reset: bool = False) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="tokenwatch", description="TokenWatch local AI API spend control")
+    parser = argparse.ArgumentParser(prog="tokenwatch", description="Token-Tracker local AI API spend control")
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("init", help="Create .env from .env.example")
 
-    serve_parser = sub.add_parser("serve", help="Run the TokenWatch server")
+    serve_parser = sub.add_parser("serve", help="Run the Token-Tracker server")
     serve_parser.add_argument("--host", default=None, help="Host to bind, default from .env/HOST")
     serve_parser.add_argument("--port", type=int, default=None, help="Port to bind, default from .env/PORT")
     serve_parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload")
@@ -145,7 +167,8 @@ def build_parser() -> argparse.ArgumentParser:
     demo_parser = sub.add_parser("demo", help="Seed realistic local demo data for the dashboard")
     demo_parser.add_argument("--reset", action="store_true", help="Clear request/project data before seeding")
 
-    sub.add_parser("status", help="Print local TokenWatch config/status")
+    sub.add_parser("status", help="Print local Token-Tracker config/status")
+    sub.add_parser("preflight", help="Check production deployment readiness")
     return parser
 
 
@@ -164,6 +187,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "status":
         print(status_text())
+        return 0
+    if args.command == "preflight":
+        print(preflight_text())
         return 0
 
     parser.print_help()
